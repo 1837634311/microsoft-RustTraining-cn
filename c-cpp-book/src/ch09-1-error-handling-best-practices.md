@@ -1,9 +1,9 @@
-# Rust Option and Result key takeaways
+# Rust Option 和 Result 关键要点
 
-> **What you'll learn:** Idiomatic error handling patterns — safe alternatives to `unwrap()`, the `?` operator for propagation, custom error types, and when to use `anyhow` vs `thiserror` in production code.
+> **你将学到什么：** 惯用的错误处理模式——`unwrap()` 的安全替代品、`?` 操作符用于传播、自定义错误类型，以及在生产代码中何时使用 `anyhow` vs `thiserror`。
 
-- ```Option``` and ```Result``` are an integral part of idiomatic Rust
-- **Safe alternatives to `unwrap()`**:
+- `Option` 和 `Result` 是惯用 Rust 的组成部分
+- **`unwrap()` 的安全替代品**：
 ```rust
 // Option<T> safe alternatives
 let value = opt.unwrap_or(default);              // Provide fallback value
@@ -16,7 +16,7 @@ let value = result.unwrap_or(fallback);          // Ignore error, use fallback
 let value = result.unwrap_or_else(|e| handle(e)); // Handle error, return fallback
 let value = result.unwrap_or_default();          // Use Default trait
 ```
-- **Pattern matching for explicit control**:
+- **用于显式控制的模式匹配**：
 ```rust
 match some_option {
     Some(value) => println!("Got: {}", value),
@@ -28,38 +28,38 @@ match some_result {
     Err(error) => log_error(error),
 }
 ```
-- **Use `?` operator for error propagation**: Short-circuit and bubble up errors
+- **使用 `?` 操作符进行错误传播**：短路并向上冒泡错误
 ```rust
 fn process_file(path: &str) -> Result<String, std::io::Error> {
     let content = std::fs::read_to_string(path)?; // Automatically returns error
     Ok(content.to_uppercase())
 }
 ```
-- **Transformation methods**:
-    - `map()`: Transform the success value `Ok(T)` -> `Ok(U)` or `Some(T)` -> `Some(U)`
-    - `map_err()`: Transform the error type `Err(E)` -> `Err(F)`
-    - `and_then()`: Chain operations that can fail
-- **Use in your own APIs**: Prefer `Result<T, E>` over exceptions or error codes
-- **References**: [Option docs](https://doc.rust-lang.org/std/option/enum.Option.html) | [Result docs](https://doc.rust-lang.org/std/result/enum.Result.html)
+- **转换方法**：
+    - `map()`：转换成功值 `Ok(T)` -> `Ok(U)` 或 `Some(T)` -> `Some(U)`
+    - `map_err()`：转换错误类型 `Err(E)` -> `Err(F)`
+    - `and_then()`：链接可能失败的操作
+- **在你自己的 API 中使用**：优先使用 `Result<T, E>` 而不是异常或错误码
+- **参考**：[Option 文档](https://doc.rust-lang.org/std/option/enum.Option.html) | [Result 文档](https://doc.rust-lang.org/std/result/enum.Result.html)
 
-# Rust Common Pitfalls and Debugging Tips
-- **Borrowing issues**: Most common beginner mistake
-    - "cannot borrow as mutable" -> Only one mutable reference allowed at a time
-    - "borrowed value does not live long enough" -> Reference outlives the data it points to
-    - **Fix**: Use scopes `{}` to limit reference lifetimes, or clone data when needed
-- **Missing trait implementations**: "method not found" errors
-    - **Fix**: Add `#[derive(Debug, Clone, PartialEq)]` for common traits
-    - Use `cargo check` to get better error messages than `cargo run`
-- **Integer overflow in debug mode**: Rust panics on overflow
-    - **Fix**: Use `wrapping_add()`, `saturating_add()`, or `checked_add()` for explicit behavior
-- **String vs &str confusion**: Different types for different use cases
-    - Use `&str` for string slices (borrowed), `String` for owned strings
-    - **Fix**: Use `.to_string()` or `String::from()` to convert `&str` to `String`
-- **Fighting the borrow checker**: Don't try to outsmart it
-    - **Fix**: Restructure code to work with ownership rules rather than against them
-    - Consider using `Rc<RefCell<T>>` for complex sharing scenarios (sparingly)
+# Rust 常见陷阱和调试技巧
+- **借用问题**：最常见的初学者错误
+    - "cannot borrow as mutable" -> 一次只允许一个可变引用
+    - "borrowed value does not live long enough" -> 引用比它指向的数据存活更久
+    - **修复**：使用作用域 `{}` 限制引用生命周期，或在需要时克隆数据
+- **缺少 trait 实现**："method not found" 错误
+    - **修复**：为常见 traits 添加 `#[derive(Debug, Clone, PartialEq)]`
+    - 使用 `cargo check` 而不是 `cargo run` 获取更好的错误消息
+- **调试模式下的整数溢出**：Rust 在溢出时 panic
+    - **修复**：使用 `wrapping_add()`、`saturating_add()` 或 `checked_add()` 获得显式行为
+- **String vs &str 混淆**：不同类型用于不同用例
+    - 使用 `&str` 作为字符串切片（借用的），`String` 作为拥有的字符串
+    - **修复**：使用 `.to_string()` 或 `String::from()` 将 `&str` 转换为 `String`
+- **与借用检查器斗争**：不要试图比它更聪明
+    - **修复**：重构代码以符合所有权规则而不是违背它们
+    - 在复杂的共享场景中考虑使用 `Rc<RefCell<T>>`（谨慎使用）
 
-## Error Handling Examples: Good vs Bad
+## 错误处理示例：好与坏
 ```rust
 // [ERROR] BAD: Can panic unexpectedly
 fn bad_config_reader() -> String {
@@ -91,14 +91,14 @@ enum ConfigError {
 }
 ```
 
-Let's break down what's happening here. `ConfigError` has just **two variants** — one for I/O errors and one for validation errors. This is the right starting point for most modules:
+让我们分解这里发生了什么。`ConfigError` 只有**两个变体**——一个用于 I/O 错误，一个用于验证错误。这是大多数模块的正确起点：
 
-| `ConfigError` variant | Holds | Created by |
+| `ConfigError` 变体 | 包含 | 创建方式 |
 |----------------------|-------|-----------|
-| `FileRead(io::Error)` | The original I/O error | `#[from]` auto-converts via `?` |
-| `Invalid { message }` | A human-readable explanation | Your validation code |
+| `FileRead(io::Error)` | 原始 I/O 错误 | `#[from]` 通过 `?` 自动转换 |
+| `Invalid { message }` | 人类可读的解释 | 你的验证代码 |
 
-Now you can Write functions that return `Result<T, ConfigError>`:
+现在你可以编写返回 `Result<T, ConfigError>` 的函数：
 
 ```rust
 fn read_config(path: &str) -> Result<String, ConfigError> {
@@ -112,19 +112,17 @@ fn read_config(path: &str) -> Result<String, ConfigError> {
 }
 ```
 
-> **🟢 Self-study checkpoint:** Before continuing, make sure you can answer:
-> 1. Why does `?` on the `read_to_string` call work? (Because `#[from]` generates `impl From<io::Error> for ConfigError`)
-> 2. What happens if you add a third variant `MissingKey(String)` — what code changes? (Just add the variant; existing code still compiles)
+> **🟢 自主学习检查点：** 在继续之前，确保你能回答：
+> 1. 为什么 `read_to_string` 调用上的 `?` 有效？（因为 `#[from]` 生成了 `impl From<io::Error> for ConfigError`）
+> 2. 如果你添加第三个变体 `MissingKey(String)` 会发生什么——需要什么代码更改？（只需添加变体；现有代码仍然编译）
 
-## Crate-Level Error Types and Result Aliases
+## Crate 级错误类型和 Result 别名
 
-As your project grows beyond a single file, you'll combine multiple module-level errors into a **crate-level error type**. This is the standard pattern in production Rust. Let's build up from the `ConfigError` above.
+随着你的项目发展超过单个文件，你将把多个模块级错误组合成一个 **crate 级错误类型**。这是生产 Rust 中的标准模式。让我们从上面的 `ConfigError` 构建。
 
-In real-world Rust projects, every crate (or significant module) defines its own `Error`
-enum and a `Result` type alias.  This is the idiomatic pattern — analogous to how in C++
-you'd define a per-library exception hierarchy and `using Result = std::expected<T, Error>`.
+在现实世界的 Rust 项目中，每个 crate（或重要模块）定义自己的 `Error` 枚举和一个 `Result` 类型别名。这是惯用模式——类似于在 C++ 中你会定义每个库的异常层次结构和 `using Result = std::expected<T, Error>`。
 
-### The pattern
+### 模式
 
 ```rust
 // src/error.rs  (or at the top of lib.rs)
@@ -150,20 +148,20 @@ pub enum Error {
 pub type Result<T> = core::result::Result<T, Error>;
 ```
 
-### How it simplifies every function
+### 它如何简化每个函数
 
-Without the alias you'd write:
+没有别名你会写：
 
 ```rust
-// Verbose — error type repeated everywhere
+// 冗长——错误类型到处重复
 fn read_sensor(id: u32) -> Result<f64, crate::Error> { ... }
 fn parse_config(path: &str) -> Result<Config, crate::Error> { ... }
 ```
 
-With the alias:
+有别名：
 
 ```rust
-// Clean — just `Result<T>`
+// 简洁——只是 `Result<T>`
 use crate::{Error, Result};
 
 fn read_sensor(id: u32) -> Result<f64> {
@@ -177,10 +175,10 @@ fn read_sensor(id: u32) -> Result<f64> {
 }
 ```
 
-The `#[from]` attribute on `Io` generates this `impl` for free:
+`Io` 上的 `#[from]` 属性免费生成这个 `impl`：
 
 ```rust
-// Auto-generated by thiserror's #[from]
+// 由 thiserror 的 #[from] 自动生成
 impl From<std::io::Error> for Error {
     fn from(source: std::io::Error) -> Self {
         Error::Io(source)
@@ -188,11 +186,9 @@ impl From<std::io::Error> for Error {
 }
 ```
 
-That's what makes `?` work: when a function returns `std::io::Error` and your function
-returns `Result<T>` (your alias), the compiler calls `From::from()` to convert it
-automatically.
+这就是使 `?` 工作的原因：当函数返回 `std::io::Error` 而你的函数返回 `Result<T>`（你的别名）时，编译器调用 `From::from()` 自动转换它。
 
-### Composing module-level errors
+### 组合模块级错误
 
 Larger crates split errors by module, then compose them at the crate root:
 
@@ -218,7 +214,7 @@ pub enum Error {
 pub type Result<T> = core::result::Result<T, Error>;
 ```
 
-Callers can still match on specific config errors:
+调用者仍然可以匹配特定的配置错误：
 
 ```rust
 match result {
@@ -228,14 +224,14 @@ match result {
 }
 ```
 
-### C++ comparison
+### C++ 比较
 
-| Concept | C++ | Rust |
+| 概念 | C++ | Rust |
 |---------|-----|------|
-| Error hierarchy | `class AppError : public std::runtime_error` | `#[derive(thiserror::Error)] enum Error { ... }` |
-| Return error | `std::expected<T, Error>` or `throw` | `fn foo() -> Result<T>` |
-| Convert error | Manual `try/catch` + rethrow | `#[from]` + `?` — zero boilerplate |
-| Result alias | `template<class T> using Result = std::expected<T, Error>;` | `pub type Result<T> = core::result::Result<T, Error>;` |
-| Error message | Override `what()` | `#[error("...")]` — compiled into `Display` impl |
+| 错误层次结构 | `class AppError : public std::runtime_error` | `#[derive(thiserror::Error)] enum Error { ... }` |
+| 返回错误 | `std::expected<T, Error>` 或 `throw` | `fn foo() -> Result<T>` |
+| 转换错误 | 手动 `try/catch` + 重新抛出 | `#[from]` + `?`——零样板代码 |
+| Result 别名 | `template<class T> using Result = std::expected<T, Error>;` | `pub type Result<T> = core::result::Result<T, Error>;` |
+| 错误消息 | 重写 `what()` | `#[error("...")]`——编译为 `Display` impl |
 
 

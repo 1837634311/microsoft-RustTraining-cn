@@ -1,12 +1,10 @@
-## Testing Patterns for C++ Programmers
+## C++ 程序员的测试模式
 
-> **What you'll learn:** Rust's built-in test framework — `#[test]`, `#[should_panic]`, `Result`-returning tests, builder patterns for test data, trait-based mocking, property testing with `proptest`, snapshot testing with `insta`, and integration test organization. Zero-config testing that replaces Google Test + CMake.
+> **你将学到什么：** Rust 内置的测试框架——`#[test]`、`#[should_panic]`、返回 `Result` 的测试、用于测试数据的 builder 模式、基于 trait 的模拟、使用 `proptest` 的属性测试、使用 `insta` 的快照测试，以及集成测试组织。替代 Google Test + CMake 的零配置测试。
 
-C++ testing typically relies on external frameworks (Google Test, Catch2, Boost.Test)
-with complex build integration. Rust's test framework is **built into the language
-and toolchain** — no dependencies, no CMake integration, no test runner configuration.
+C++ 测试通常依赖外部框架（Google Test、Catch2、Boost.Test）以及复杂的构建集成。Rust 的测试框架**内置于语言和工具链中**——无需依赖、无需 CMake 集成、无需测试运行器配置。
 
-### Test attributes beyond `#[test]`
+### `#[test]` 之外的测试属性
 
 ```rust
 #[cfg(test)]
@@ -60,10 +58,10 @@ cargo test -- --nocapture           # Show println! output during tests
 cargo test -- --test-threads=1      # Run tests serially (for shared state)
 ```
 
-### Test helpers: builder pattern for test data
+### 测试辅助函数：用于测试数据的 builder 模式
 
-In C++ you'd use Google Test fixtures (`class MyTest : public ::testing::Test`).
-In Rust, use builder functions or the `Default` trait:
+在 C++ 中你会使用 Google Test fixtures（`class MyTest : public ::testing::Test`）。
+在 Rust 中，使用 builder 函数或 `Default` trait：
 
 ```rust
 #[cfg(test)]
@@ -101,10 +99,10 @@ mod tests {
 }
 ```
 
-### Mocking with traits
+### 使用 traits 进行模拟
 
-In C++, mocking requires frameworks like Google Mock or manual virtual overrides.
-In Rust, define a trait for the dependency and swap implementations in tests:
+在 C++ 中，模拟需要 Google Mock 等框架或手动虚拟覆盖。
+在 Rust 中，为依赖定义一个 trait，并在测试中交换实现：
 
 ```rust
 // Production trait
@@ -161,9 +159,9 @@ mod tests {
 }
 ```
 
-### Temporary files and directories in tests
+### 测试中的临时文件和目录
 
-C++ tests often use platform-specific temp directories. Rust has `tempfile`:
+C++ 测试经常使用平台特定的临时目录。Rust 有 `tempfile`：
 
 ```rust
 // Cargo.toml: [dev-dependencies]
@@ -189,10 +187,9 @@ mod tests {
 }
 ```
 
-### Property-based testing with `proptest`
+### 使用 `proptest` 的基于属性的测试
 
-Instead of writing specific test cases, describe **properties** that should hold
-for all inputs. `proptest` generates random inputs and finds minimal failing cases:
+不要编写特定的测试用例，而是描述应该对所有输入成立的**属性**。`proptest` 生成随机输入并找到最小失败案例：
 
 ```rust
 // Cargo.toml: [dev-dependencies]
@@ -222,10 +219,9 @@ mod tests {
 }
 ```
 
-### Snapshot testing with `insta`
+### 使用 `insta` 进行快照测试
 
-For tests that produce complex output (JSON, formatted strings), `insta` auto-generates
-and manages reference snapshots:
+对于产生复杂输出（JSON、格式化字符串）的测试，`insta` 自动生成并管理参考快照：
 
 ```rust
 // Cargo.toml: [dev-dependencies]
@@ -254,27 +250,27 @@ cargo insta test              # Run tests and review new/changed snapshots
 cargo insta review            # Interactive review of snapshot changes
 ```
 
-### C++ vs Rust testing comparison
+### C++ vs Rust 测试比较
 
-| **C++ (Google Test)** | **Rust** | **Notes** |
+| **C++（Google Test）** | **Rust** | **备注** |
 |----------------------|---------|----------|
-| `TEST(Suite, Name) { }` | `#[test] fn name() { }` | No suite/class hierarchy needed |
-| `ASSERT_EQ(a, b)` | `assert_eq!(a, b)` | Built-in macro, no framework needed |
-| `ASSERT_NEAR(a, b, eps)` | `assert!((a - b).abs() < eps)` | Or use `approx` crate |
-| `EXPECT_THROW(expr, type)` | `#[should_panic(expected = "...")]` | Or `catch_unwind` for fine control |
+| `TEST(Suite, Name) { }` | `#[test] fn name() { }` | 不需要 suite/类层次结构 |
+| `ASSERT_EQ(a, b)` | `assert_eq!(a, b)` | 内置宏，无需框架 |
+| `ASSERT_NEAR(a, b, eps)` | `assert!((a - b).abs() < eps)` | 或使用 `approx` crate |
+| `EXPECT_THROW(expr, type)` | `#[should_panic(expected = "...")]` | 或使用 `catch_unwind` 进行精细控制 |
 | `EXPECT_DEATH(expr, "msg")` | `#[should_panic(expected = "msg")]` | |
-| `class Fixture : public ::testing::Test` | Builder functions + `Default` | No inheritance needed |
-| Google Mock `MOCK_METHOD` | Trait + test impl | More explicit, no macro magic |
-| `INSTANTIATE_TEST_SUITE_P` (parameterized) | `proptest!` or macro-generated tests | |
-| `SetUp()` / `TearDown()` | RAII via `Drop` — cleanup is automatic | Variables dropped at end of test |
-| Separate test binary + CMake | `cargo test` — zero config | |
+| `class Fixture : public ::testing::Test` | Builder 函数 + `Default` | 不需要继承 |
+| Google Mock `MOCK_METHOD` | Trait + 测试实现 | 更显式，无需宏魔法 |
+| `INSTANTIATE_TEST_SUITE_P`（参数化） | `proptest!` 或宏生成的测试 | |
+| `SetUp()` / `TearDown()` | 通过 `Drop` 的 RAII——自动清理 | 变量在测试结束时被 drop |
+| 单独的测试二进制文件 + CMake | `cargo test`——零配置 | |
 | `ctest --output-on-failure` | `cargo test -- --nocapture` | |
 
 ----
 
-### Integration tests: the `tests/` directory
+### 集成测试：`tests/` 目录
 
-Unit tests live inside `#[cfg(test)]` modules alongside your code. **Integration tests** live in a separate `tests/` directory at the crate root and test your library's public API as an external consumer would:
+单元测试位于代码旁边的 `#[cfg(test)]` 模块中。**集成测试**位于 crate 根目录的单独 `tests/` 目录中，像外部消费者一样测试你库的公共 API：
 
 ```
 my_crate/
@@ -328,15 +324,15 @@ fn regression_issue_42() {
 }
 ```
 
-**Running integration tests:**
+**运行集成测试：**
 ```bash
-cargo test                          # Runs unit AND integration tests
-cargo test --test smoke             # Run only tests/smoke.rs
-cargo test --test regression        # Run only tests/regression.rs
-cargo test --lib                    # Run ONLY unit tests (skip integration)
+cargo test                          # 运行单元和集成测试
+cargo test --test smoke             # 仅运行 tests/smoke.rs
+cargo test --test regression        # 仅运行 tests/regression.rs
+cargo test --lib                    # 仅运行单元测试（跳过集成）
 ```
 
-> **Key difference from unit tests**: Integration tests cannot access private functions or `pub(crate)` items. This forces you to verify that your public API is sufficient — a valuable design signal. In C++ terms, it's like testing against only the public header with no `friend` access.
+> **与单元测试的关键差异**：集成测试无法访问私有函数或 `pub(crate)` 项。这迫使你验证你的公共 API 是否足够——一个有价值的设计信号。在 C++ 术语中，这相当于仅针对公共头文件进行测试，没有 `friend` 访问权限。
 
 ----
 

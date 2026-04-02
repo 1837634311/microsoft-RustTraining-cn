@@ -1,18 +1,18 @@
 ### Unsafe Rust
 
-> **What you'll learn:** When and how to use `unsafe` — raw pointer dereferencing, FFI (Foreign Function Interface) for calling C from Rust and vice versa, `CString`/`CStr` for string interop, and how to write safe wrappers around unsafe code.
+> **你将学到什么：** 何时以及如何使用 `unsafe`——原始指针解引用、FFI（外部函数接口）用于从 Rust 调用 C 和反之亦然、`CString`/`CStr` 用于字符串互操作，以及如何围绕不安全代码编写安全包装器。
 
-- ```unsafe``` unlocks access to features that are normally disallowed by the Rust compiler
-    - Dereferencing raw pointers
-    - Accessing *mutable* static variables
+- `unsafe` 解锁了对 Rust 编译器通常不允许的功能的访问
+    - 解引用原始指针
+    - 访问*可变*静态变量
     - https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
-- With great power comes great responsibility
-    - ```unsafe``` tells the compiler "I, the programmer, take responsibility for upholding the invariants that the compiler normally guarantees"
-    - Must guarantee no aliased mutable and immutable references, no dangling pointers, no invalid references, ...
-    - The use of ```unsafe``` should be limited to the smallest possible scope
-    - All code using ```unsafe``` should have a "safety" comment describing the assumptions
+- 权力越大，责任越大
+    - `unsafe` 告诉编译器"我，程序员，负责维护编译器通常保证的不变量"
+    - 必须保证没有别名可变和不可变引用、没有悬空指针、没有无效引用...
+    - `unsafe` 的使用应该限制在最小可能的作用域
+    - 所有使用 `unsafe` 的代码都应该有一个描述假设的"安全"注释
 
-### Unsafe Rust examples
+### Unsafe Rust 示例
 ```rust
 unsafe fn harmless() {}
 fn main() {
@@ -37,16 +37,16 @@ fn main() {
 
 ### Simple FFI example (Rust library function consumed by C)
 
-## FFI Strings: CString and CStr
+## FFI 字符串：CString 和 CStr
 
-FFI stands for *Foreign Function Interface* — the mechanism Rust uses to call functions written in other languages (such as C) and vice versa.
+FFI 代表 *Foreign Function Interface*（外部函数接口）——Rust 用于调用其他语言（如 C）编写的函数，反之亦然的机制。
 
-When interfacing with C code, Rust's `String` and `&str` types (which are UTF-8 without null terminators) aren't directly compatible with C strings (which are null-terminated byte arrays). Rust provides `CString` (owned) and `CStr` (borrowed) from `std::ffi` for this purpose:
+在与 C 代码接口时，Rust 的 `String` 和 `&str` 类型（没有空终止符的 UTF-8）不能直接与 C 字符串（空终止的字节数组）兼容。Rust 为此从 `std::ffi` 提供了 `CString`（拥有的）和 `CStr`（借用的）：
 
-| Type | Analogous to | Use when |
+| 类型 | 类比于 | 何时使用 |
 |------|-------------|----------|
-| `CString` | `String` (owned) | Creating a C string from Rust data |
-| `&CStr` | `&str` (borrowed) | Receiving a C string from foreign code |
+| `CString` | `String`（拥有的） | 从 Rust 数据创建 C 字符串 |
+| `&CStr` | `&str`（借用的） | 从外部代码接收 C 字符串 |
 
 ```rust
 use std::ffi::{CString, CStr};
@@ -65,10 +65,10 @@ fn demo_ffi_strings() {
 }
 ```
 
-> **Warning**: `CString::new()` will return an error if the input contains interior null bytes (`\0`). Always handle the `Result`. You'll see `CStr` used extensively in the FFI examples below.
+> **警告**：`CString::new()` 如果输入包含内部空字节（`\0`）将返回错误。始终处理 `Result`。你将在下面的 FFI 示例中看到广泛使用 `CStr`。
 
-- ```FFI``` methods must be marked with ```#[no_mangle]``` to ensure that the compiler doesn't mangle the name
-- We'll compile the crate as a static library
+- `FFI` 方法必须用 `#[no_mangle]` 标记以确保编译器不会破坏名称
+- 我们将把 crate 编译为静态库
     ```
     #[no_mangle] 
     pub extern "C" fn add(left: u64, right: u64) -> u64 {

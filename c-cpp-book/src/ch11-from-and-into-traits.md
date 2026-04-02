@@ -1,8 +1,8 @@
-# Rust From and Into traits
+# Rust From 和 Into traits
 
-> **What you'll learn:** Rust's type conversion traits — `From<T>` and `Into<T>` for infallible conversions, `TryFrom` and `TryInto` for fallible ones. Implement `From` and get `Into` for free. Replaces C++ conversion operators and constructors.
+> **你将学到什么：** Rust 的类型转换 traits——用于 infallible 转换的 `From<T>` 和 `Into<T>`，用于可能失败的转换的 `TryFrom` 和 `TryInto`。实现 `From` 即可免费获得 `Into`。替代 C++ 转换运算符和构造函数。
 
-- ```From``` and ```Into``` are complementary traits to facilitate type conversion
+- `From` 和 `Into` 是互补的 traits，促进类型转换
 - Types normally implement on the ```From``` trait. the ```String::from()``` converts from "&str" to ```String```, and compiler can automatically derive ```&str.into```
 ```rust
 struct Point {x: u32, y: u32}
@@ -21,8 +21,8 @@ fn main() {
 }
 ```
 
-# Exercise: From and Into
-- Implement a ```From``` trait for ```Point``` to convert into a type called ```TransposePoint```. ```TransposePoint``` swaps the ```x``` and ```y``` elements of ```Point```
+# 练习：From 和 Into
+- 为 `Point` 实现 `From` trait，转换为名为 `TransposePoint` 的类型。`TransposePoint` 交换 `Point` 的 `x` 和 `y` 元素
 
 <details><summary>Solution (click to expand)</summary>
 

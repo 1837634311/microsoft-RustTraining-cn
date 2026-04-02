@@ -1,11 +1,11 @@
-## Algebraic Data Types vs C# Unions
+## 代数数据类型 vs C#联合类型
 
-> **What you'll learn:** Rust's algebraic data types (enums with data) vs C#'s limited discriminated unions,
-> `match` expressions with exhaustive checking, guard clauses, and nested pattern destructuring.
+> **学习内容：** Rust的代数数据类型（带数据的枚举）vs C#有限的判别联合类型、
+> 带穷举检查的`match`表达式、守卫子句和嵌套模式解构。
 >
-> **Difficulty:** 🟡 Intermediate
+> **难度：** 🟡 中级
 
-### C# Discriminated Unions (Limited)
+### C# 判别联合类型（有限）
 ```csharp
 // C# - Limited union support with inheritance
 public abstract class Result
@@ -44,7 +44,7 @@ public static double Area(Shape shape) => shape switch
 };
 ```
 
-### Rust Algebraic Data Types (Enums)
+### Rust 代数数据类型（枚举）
 ```rust
 // Rust - True algebraic data types with exhaustive pattern matching
 #[derive(Debug, Clone)]
@@ -136,11 +136,11 @@ graph TD
 
 ***
 
-## Enums and Pattern Matching
+## 枚举和模式匹配
 
-Rust enums are much more powerful than C# enums - they can hold data and are the foundation of type-safe programming.
+Rust枚举比C#枚举强大得多——它们可以持有数据，是类型安全编程的基础。
 
-### C# Enum Limitations
+### C# 枚举的局限性
 ```csharp
 // C# enum - just named constants
 public enum Status
@@ -187,7 +187,7 @@ public class Error : Result
 }
 ```
 
-### Rust Enum Power
+### Rust 枚举的强大之处
 ```rust
 // Simple enum (like C# enum)
 #[derive(Debug, PartialEq)]
@@ -223,7 +223,7 @@ enum HttpResponse {
 }
 ```
 
-### Pattern Matching with Match
+### 使用Match进行模式匹配
 ```csharp
 // C# switch statement (limited)
 public string HandleStatus(Status status)
@@ -306,7 +306,7 @@ fn handle_http_response(response: HttpResponse) -> String {
 }
 ```
 
-### Guards and Advanced Patterns
+### 守卫和高级模式
 ```rust
 // Pattern matching with guards
 fn describe_number(x: i32) -> String {
@@ -333,9 +333,9 @@ fn describe_age(age: u32) -> String {
 ```
 
 <details>
-<summary><strong>🏋️ Exercise: Command Parser</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：命令解析器</strong>（点击展开）</summary>
 
-**Challenge**: Model a CLI command system using Rust enums. Parse string input into a `Command` enum and execute each variant. Handle unknown commands with proper error handling.
+**挑战**：使用Rust枚举建模一个CLI命令系统。将字符串输入解析为`Command`枚举并执行每个变体。使用适当的错误处理处理未知命令。
 
 ```rust
 // Starter code — fill in the blanks
@@ -402,10 +402,10 @@ fn execute(cmd: &Command) -> String {
 }
 ```
 
-**Key takeaways**:
-- Each enum variant can hold different data — no need for class hierarchies
-- `match` forces you to handle every variant, preventing forgotten cases
-- `?` operator chains error propagation cleanly — no nested try-catch
+**关键要点**：
+- 每个枚举变体可以持有不同的数据——不需要类层次结构
+- `match`强制你处理每个变体，防止遗漏的情况
+- `?`操作符干净地链接错误传播——没有嵌套的try-catch
 
 </details>
 </details>

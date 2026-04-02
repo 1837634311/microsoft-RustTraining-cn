@@ -1,21 +1,21 @@
-# Built-in Rust types
+# Rust 内置类型
 
-> **What you'll learn:** Rust's fundamental types (`i32`, `u64`, `f64`, `bool`, `char`), type inference, explicit type annotations, and how they compare to C/C++ primitive types. No implicit conversions — Rust requires explicit casts.
+> **你将学到什么：** Rust 的基本类型（`i32`、`u64`、`f64`、`bool`、`char`）、类型推断、显式类型注解，以及它们与 C/C++ 原始类型的比较。无隐式转换——Rust 需要显式强制转换。
 
-- Rust has type inference, but also allows explicit specification of the type 
+- Rust 有类型推断，但也允许显式指定类型
 
-|  **Description**  |            **Type**            |          **Example**          |
+|  **描述**  |            **类型**            |          **示例**          |
 |:-----------------:|:------------------------------:|:-----------------------------:|
-| Signed integers   | i8, i16, i32, i64, i128, isize | -1, 42, 1_00_000, 1_00_000i64 |
-| Unsigned integers | u8, u16, u32, u64, u128, usize | 0, 42, 42u32, 42u64           |
-| Floating point    | f32, f64                       | 0.0, 0.42                     |
+| 有符号整数   | i8, i16, i32, i64, i128, isize | -1, 42, 1_00_000, 1_00_000i64 |
+| 无符号整数 | u8, u16, u32, u64, u128, usize | 0, 42, 42u32, 42u64           |
+| 浮点数    | f32, f64                       | 0.0, 0.42                     |
 | Unicode           | char                           | 'a', '$'                      |
-| Boolean           | bool                           | true, false                   |
+| 布尔           | bool                           | true, false                   |
 
-- Rust permits arbitrarily use of ```_``` between numbers for ease of reading
+- Rust 允许在数字之间随意使用 `_` 以便于阅读
 ----
-### Rust type specification and assignment
-- Rust uses the ```let``` keyword to assign values to variables. The type of the variable can be optionally specified after a ```:```
+### Rust 类型指定和赋值
+- Rust 使用 `let` 关键字为变量赋值。变量的类型可以在 `:` 后面可选地指定
 ```rust
 fn main() {
     let x : i32 = 42;
@@ -23,19 +23,19 @@ fn main() {
     let y : u32 = 42;
     let z = 42u32;
 }
-``` 
-- Function parameters and return values (if any) require an explicit type. The following takes an u8 parameter and returns u32
+```
+- 函数参数和返回值（如果有）需要显式类型。以下是接受 u8 参数并返回 u32
 ```rust
 fn foo(x : u8) -> u32
 {
     return x * x;
 }
 ```
-- Unused variables are prefixed with ```_``` to avoid compiler warnings
+- 未使用的变量前缀为 `_` 以避免编译器警告
 ----
-# Rust type specification and inference
-- Rust can automatically infer the type of the variable based on the context. 
-- [▶ Try it in the Rust Playground](https://play.rust-lang.org/)
+# Rust 类型指定和推断
+- Rust 可以根据上下文自动推断变量的类型。
+- [▶ 在 Rust Playground 中尝试](https://play.rust-lang.org/)
 ```rust
 fn secret_of_life_u32(x : u32) {
     println!("The u32 secret_of_life is {}", x);
@@ -53,15 +53,15 @@ fn main() {
 }
 ```
 
-# Rust variables and mutability
-- Rust variables are **immutable** by default unless the ```mut``` keyword is used to denote that a variable is mutable. For example, the following code will not compile unless the ```let a = 42``` is changed to ```let mut a = 42```
+# Rust 变量和可变性
+- Rust 变量默认是**不可变的**，除非使用 `mut` 关键字表示变量是可变的。例如，以下代码将无法编译，除非将 `let a = 42` 更改为 `let mut a = 42`
 ```rust
 fn main() {
-    let a = 42; // Must be changed to let mut a = 42 to permit the assignment below 
+    let a = 42; // Must be changed to let mut a = 42 to permit the assignment below
     a = 43;  // Will not compile unless the above is changed
 }
 ```
-- Rust permits the reuse of the variable names (shadowing)
+- Rust 允许重用变量名（shadowing）
 ```rust
 fn main() {
     let a = 42;

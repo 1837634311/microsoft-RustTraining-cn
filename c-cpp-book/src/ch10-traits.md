@@ -1,9 +1,9 @@
 # Rust traits
 
-> **What you'll learn:** Traits — Rust's answer to interfaces, abstract base classes, and operator overloading. You'll learn how to define traits, implement them for your types, and use dynamic dispatch (`dyn Trait`) vs static dispatch (generics). For C++ developers: traits replace virtual functions, CRTP, and concepts. For C developers: traits are the structured way Rust does polymorphism.
+> **你将学到什么：** Traits——Rust 对接口、抽象基类和运算符重载的回答。你将学习如何定义 traits、为你的类型实现它们，以及使用动态分发（`dyn Trait`）vs 静态分发（泛型）。对于 C++ 开发者：traits 替代虚函数、CRTP 和 concepts。对于 C 开发者：traits 是 Rust 实现多态的结构化方式。
 
-- Rust traits are similar to interfaces in other languages
-    - Traits define methods that must be defined by types that implement the trait.
+- Rust traits 类似于其他语言中的接口
+    - Traits 定义了必须由实现该 trait 的类型定义的方法。
 ```rust
 fn main() {
     trait Pet {
@@ -28,9 +28,9 @@ fn main() {
 }
 ```
 
-## Traits vs C++ Concepts and Interfaces
+## Traits vs C++ Concepts 和接口
 
-### Traditional C++ Inheritance vs Rust Traits
+### 传统 C++ 继承 vs Rust Traits
 
 ```cpp
 // C++ - Inheritance-based polymorphism

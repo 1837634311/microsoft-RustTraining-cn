@@ -1,63 +1,57 @@
-# Applied Walkthrough — Type-Safe Redfish Server 🟡
+# 应用演练 — 类型安全的 Redfish 服务器 🟡
 
-> **What you'll learn:** How to compose response builder type-state, source-availability tokens, dimensional serialization, health rollup, schema versioning, and typed action dispatch into a Redfish server that **cannot produce a schema-non-compliant response** — the mirror of the client walkthrough in [ch17](ch17-redfish-applied-walkthrough.md).
+> **你将学到：** 如何组合响应构建器类型状态、源可用性令牌、量纲序列化、健康汇总、模式版本控制和类型化动作分发，构建一个**无法产生不符合模式的响应**的 Redfish 服务器——这是第17章客户端演练的镜像。
 >
-> **Cross-references:** [ch02](ch02-typed-command-interfaces-request-determi.md) (typed commands — inverted for action dispatch), [ch04](ch04-capability-tokens-zero-cost-proof-of-aut.md) (capability tokens — source availability), [ch06](ch06-dimensional-analysis-making-the-compiler.md) (dimensional types — serialization side), [ch07](ch07-validated-boundaries-parse-dont-validate.md) (validated boundaries — inverted: "construct, don't serialize"), [ch09](ch09-phantom-types-for-resource-tracking.md) (phantom types — schema versioning), [ch11](ch11-fourteen-tricks-from-the-trenches.md) (trick 3 — `#[non_exhaustive]`, trick 4 — builder type-state), [ch17](ch17-redfish-applied-walkthrough.md) (client counterpart)
+> **交叉引用：** [ch02](ch02-typed-command-interfaces-request-determi.md)（类型化命令——反向用于动作分发）、[ch04](ch04-capability-tokens-zero-cost-proof-of-aut.md)（能力令牌——源可用性）、[ch06](ch06-dimensional-analysis-making-the-compiler.md)（量纲类型——序列化端）、[ch07](ch07-validated-boundaries-parse-dont-validate.md)（验证边界——反向："构造，不要序列化"）、[ch09](ch09-phantom-types-for-resource-tracking.md)（幽灵类型——模式版本控制）、[ch11](ch11-fourteen-tricks-from-the-trenches.md)（技巧3——`#[non_exhaustive]`，技巧4——构建器类型状态）、[ch17](ch17-redfish-applied-walkthrough.md)（客户端对应部分）
 
-## The Mirror Problem
+## 镜像问题
 
-Chapter 17 asks: *"How do I consume Redfish correctly?"* This chapter asks the
-mirror question: *"How do I produce Redfish correctly?"*
+第17章问的是："如何正确消费 Redfish？" 本章问的是镜像问题："如何正确生产 Redfish？"
 
-On the client side, the danger is **trusting** bad data. On the server side, the
-danger is **emitting** bad data — and every client in the fleet trusts what you
-send.
+在客户端，危险是**信任**坏数据。在服务器端，危险是**发出**坏数据——而 fleet 中的每个客户端都信任你发送的内容。
 
-A single `GET /redfish/v1/Systems/1` response must fuse data from many sources:
+单个 `GET /redfish/v1/Systems/1` 响应必须融合来自多个源的数据：
 
 ```mermaid
 flowchart LR
     subgraph Sources
         SMBIOS["SMBIOS\nType 1, Type 17"]
-        SDR["IPMI Sensors\n(SDR + readings)"]
-        SEL["IPMI SEL\n(critical events)"]
-        PCIe["PCIe Config\nSpace"]
-        FW["Firmware\nVersion Table"]
-        PWR["Power State\nRegister"]
+        SDR["IPMI 传感器\n(SDR + 读数)"]
+        SEL["IPMI SEL\n(关键事件)"]
+        PCIe["PCIe 配置\n空间"]
+        FW["固件\n版本表"]
+        PWR["电源状态\n寄存器"]
     end
 
-    subgraph Server["Redfish Server"]
-        Handler["GET handler"]
-        Builder["ComputerSystem\nBuilder"]
+    subgraph Server["Redfish 服务器"]
+        Handler["GET 处理器"]
+        Builder["ComputerSystem\n构建器"]
     end
 
-    SMBIOS -->|"Name, UUID, Serial"| Handler
-    SDR -->|"Temperatures, Fans"| Handler
-    SEL -->|"Health escalation"| Handler
-    PCIe -->|"Device links"| Handler
-    FW -->|"BIOS version"| Handler
-    PWR -->|"PowerState"| Handler
+    SMBIOS -->|"名称、UUID、序列号"| Handler
+    SDR -->|"温度、风扇"| Handler
+    SEL -->|"健康升级"| Handler
+    PCIe -->|"设备链路"| Handler
+    FW -->|"BIOS 版本"| Handler
+    PWR -->|"电源状态"| Handler
     Handler --> Builder
-    Builder -->|".build()"| JSON["Schema-compliant\nJSON response"]
+    Builder -->|".build()"| JSON["符合模式的\nJSON 响应"]
 
     style JSON fill:#c8e6c9,color:#000
     style Builder fill:#e1f5fe,color:#000
 ```
 
-In C, this is a 500-line handler that calls into six subsystems, manually builds
-a JSON tree with `json_object_set()`, and hopes every required field was populated.
-Forget one? The response violates the Redfish schema. Get the unit wrong? Every
-client sees corrupted telemetry.
+在 C 中，这是一个500行的处理器，调用六个子系统，用 `json_object_set()` 手动构建 JSON 树，并希望每个必需字段都被填充。忘记一个？响应违反 Redfish 模式。单位搞错？每个客户端看到损坏的遥测数据。
 
 ```c
-// C — the assembly problem
+// C — 汇编级问题
 json_t *get_computer_system(const char *id) {
     json_t *obj = json_object();
     json_object_set_new(obj, "@odata.type",
         json_string("#ComputerSystem.v1_13_0.ComputerSystem"));
 
-    // 🐛 Forgot to set "Name" — schema requires it
-    // 🐛 Forgot to set "UUID" — schema requires it
+    // 🐛 忘记设置 "Name" — 模式要求它
+    // 🐛 忘记设置 "UUID" — 模式要求它
 
     smbios_type1_t *t1 = smbios_get_type1();
     if (t1) {
@@ -66,53 +60,49 @@ json_t *get_computer_system(const char *id) {
     }
 
     json_object_set_new(obj, "PowerState",
-        json_string(get_power_state()));  // at least this one is always available
+        json_string(get_power_state()));  // 至少这个总是可用的
 
-    // 🐛 Reading is in raw ADC counts, not Celsius — no type to catch it
+    // 🐛 读数是原始 ADC 计数值，不是摄氏度 — 没有类型能捕获它
     double cpu_temp = read_sensor(SENSOR_CPU_TEMP);
-    // This number ends up in a Thermal response somewhere else...
-    // but nothing ties it to "Celsius" at the type level
+    // 这个数字最终出现在某处的 Thermal 响应中...
+    // 但没有任何东西在类型层面将它与"摄氏度"绑定
 
-    // 🐛 Health is manually computed — forgot to include PSU status
+    // 🐛 健康状态是手动计算的 — 忘记包含 PSU 状态
     json_object_set_new(obj, "Status",
-        build_status("Enabled", "OK")); // should be "Critical" — PSU is failing
+        build_status("Enabled", "OK")); // 应该是 "Critical" — PSU 正在故障
 
-    return obj; // missing 2 required fields, wrong health, raw units
+    return obj; // 缺少2个必需字段，错误健康状态，原始单位
 }
 ```
 
-Four bugs in one handler. On the client side, each bug affects **one** client.
-On the server side, each bug affects **every** client that queries this BMC.
+四个 bug 在一个处理器中。客户端，每个 bug 影响**一个**客户端。服务器端，每个 bug 影响**每个**查询此 BMC 的客户端。
 
 ---
 
-## Section 1 — Response Builder Type-State: "Construct, Don't Serialize" (ch07 Inverted)
+## 第1节 — 响应构建器类型状态："构造，不要序列化"（ch07 反向）
 
-Chapter 7 teaches "parse, don't validate" — validate inbound data once, carry the
-proof in a type. The server-side mirror is **"construct, don't serialize"** — build
-the outbound response through a builder that gates `.build()` on all required fields
-being present.
+第7章教"解析，不要验证"——对入站数据验证一次，在类型中携带证明。服务器端的镜像则是**"构造，不要序列化"**——通过一个构建器构建出站响应，该构建器在所有必需字段都存在时才开启 `.build()`。
 
 ```rust,ignore
 use std::marker::PhantomData;
 
-// ──── Type-level field tracking ────
+// ──── 类型级字段跟踪 ────
 
 pub struct HasField;
 pub struct MissingField;
 
-// ──── Response Builder ────
+// ──── 响应构建器 ────
 
-/// Builder for a ComputerSystem Redfish resource.
-/// Type parameters track which REQUIRED fields have been supplied.
-/// Optional fields don't need type-level tracking.
+/// ComputerSystem Redfish 资源的构建器。
+/// 类型参数跟踪哪些必需字段已被提供。
+/// 可选字段不需要类型级跟踪。
 pub struct ComputerSystemBuilder<Name, Uuid, PowerState, Status> {
-    // Required fields — tracked at the type level
+    // 必需字段 — 在类型级跟踪
     name: Option<String>,
     uuid: Option<String>,
     power_state: Option<PowerStateValue>,
     status: Option<ResourceStatus>,
-    // Optional fields — not tracked (always settable)
+    // 可选字段 — 不跟踪（总是可设置）
     manufacturer: Option<String>,
     model: Option<String>,
     serial_number: Option<String>,
@@ -157,7 +147,7 @@ pub struct MemorySummary {
     pub status: ResourceStatus,
 }
 
-// ──── Constructor: all fields start MissingField ────
+// ──── 构造函数：所有字段从 MissingField 开始 ────
 
 impl ComputerSystemBuilder<MissingField, MissingField, MissingField, MissingField> {
     pub fn new() -> Self {
@@ -170,7 +160,7 @@ impl ComputerSystemBuilder<MissingField, MissingField, MissingField, MissingFiel
     }
 }
 
-// ──── Required field setters — each transitions one type parameter ────
+// ──── 必需字段 setter — 每个转变一个类型参数 ────
 
 impl<U, P, S> ComputerSystemBuilder<MissingField, U, P, S> {
     pub fn name(self, name: String) -> ComputerSystemBuilder<HasField, U, P, S> {
@@ -228,7 +218,7 @@ impl<N, U, P> ComputerSystemBuilder<N, U, P, MissingField> {
     }
 }
 
-// ──── Optional field setters — available in any state ────
+// ──── 可选字段 setter — 在任何状态下都可用 ────
 
 impl<N, U, P, S> ComputerSystemBuilder<N, U, P, S> {
     pub fn manufacturer(mut self, m: String) -> Self {
@@ -251,7 +241,7 @@ impl<N, U, P, S> ComputerSystemBuilder<N, U, P, S> {
     }
 }
 
-// ──── .build() ONLY exists when all required fields are HasField ────
+// ──── .build() 仅在所有必需字段都是 HasField 时存在 ────
 
 impl ComputerSystemBuilder<HasField, HasField, HasField, HasField> {
     pub fn build(self, id: &str) -> serde_json::Value {
@@ -265,7 +255,7 @@ impl ComputerSystemBuilder<HasField, HasField, HasField, HasField> {
             "Status": self.status.unwrap(),
         });
 
-        // Optional fields — included only if present
+        // 可选字段 — 仅在存在时包含
         if let Some(m) = self.manufacturer {
             obj["Manufacturer"] = serde_json::json!(m);
         }
@@ -290,18 +280,18 @@ impl ComputerSystemBuilder<HasField, HasField, HasField, HasField> {
 }
 
 //
-// ── The Compiler Enforces Completeness ──
+// ── 编译器强制完整性 ──
 //
-// ✅ All required fields set — .build() is available:
+// ✅ 所有必需字段已设置 — .build() 可用:
 // ComputerSystemBuilder::new()
 //     .name("PowerEdge R750".into())
 //     .uuid("4c4c4544-...".into())
 //     .power_state(PowerStateValue::On)
 //     .status(ResourceStatus { ... })
-//     .manufacturer("Dell".into())        // optional — fine to include
+//     .manufacturer("Dell".into())        // 可选 — 可以包含
 //     .build("1")
 //
-// ❌ Missing "Name" — compile error:
+// ❌ 缺少 "Name" — 编译错误:
 // ComputerSystemBuilder::new()
 //     .uuid("4c4c4544-...".into())
 //     .power_state(PowerStateValue::On)
@@ -311,46 +301,39 @@ impl ComputerSystemBuilder<HasField, HasField, HasField, HasField> {
 //   `ComputerSystemBuilder<MissingField, HasField, HasField, HasField>`
 ```
 
-**Bug class eliminated:** schema-non-compliant responses. The handler physically
-cannot serialize a `ComputerSystem` without supplying every required field. The
-compiler error message even tells you *which* field is missing — it's right there
-in the type parameter: `MissingField` in the `Name` position.
+**消除的 bug 类别：** 不符合模式的响应。处理器在物理上无法在未提供每个必需字段的情况下序列化 `ComputerSystem`。编译器错误信息甚至告诉你**哪个**字段缺失——就在类型参数中：`Name` 位置的 `MissingField`。
 
 ---
 
-## Section 2 — Source-Availability Tokens (Capability Tokens, ch04 — New Twist)
+## 第2节 — 源可用性令牌（能力令牌，ch04 — 新转折）
 
-In ch04 and ch17, capability tokens prove **authorization** — "the caller is
-allowed to do this." On the server side, the same pattern proves **availability** —
-"this data source was successfully initialized."
+在 ch04 和 ch17 中，能力令牌证明**授权**——"调用者被允许执行此操作"。在服务器端，相同的模式证明**可用性**——"此数据源已成功初始化"。
 
-Each subsystem the BMC queries can fail independently. SMBIOS tables might be
-corrupt. The sensor subsystem might still be initializing. PCIe bus scan might
-have timed out. Encode each as a proof token:
+BMC 查询的每个子系统都可能独立失败。SMBIOS 表可能损坏。传感器子系统可能仍在初始化。PCIe 总线扫描可能超时。将每个编码为证明令牌：
 
 ```rust,ignore
-/// Proof that SMBIOS tables were successfully parsed.
-/// Only produced by the SMBIOS init function.
+/// SMBIOS 表已成功解析的证明。
+/// 仅由 SMBIOS 初始化函数产生。
 pub struct SmbiosReady {
     _private: (),
 }
 
-/// Proof that IPMI sensor subsystem is responsive.
+/// IPMI 传感器子系统响应的证明。
 pub struct SensorsReady {
     _private: (),
 }
 
-/// Proof that PCIe bus scan completed.
+/// PCIe 总线扫描完成的证明。
 pub struct PcieReady {
     _private: (),
 }
 
-/// Proof that the SEL was successfully read.
+/// SEL 已成功读取的证明。
 pub struct SelReady {
     _private: (),
 }
 
-// ──── Data source initialization ────
+// ──── 数据源初始化 ────
 
 pub struct SmbiosTables {
     pub product_name: String,
@@ -366,9 +349,9 @@ pub struct SensorCache {
     pub psu_power: Vec<(String, Watts)>,
 }
 
-/// Rich SEL summary — per-subsystem health derived from typed events.
-/// Built by the consumer pipeline in ch07's SEL section.
-/// Replaces the lossy `has_critical_events: bool` with typed granularity.
+/// 丰富的 SEL 汇总 — 通过类型化事件导出的每子系统健康状态。
+/// 由 ch07 的使用者管道构建。
+/// 用类型化粒度替代有损的 `has_critical_events: bool`。
 pub struct TypedSelSummary {
     pub total_entries: u32,
     pub processor_health: HealthValue,
@@ -381,8 +364,8 @@ pub struct TypedSelSummary {
 }
 
 pub fn init_smbios() -> Option<(SmbiosReady, SmbiosTables)> {
-    // Read SMBIOS entry point, parse tables...
-    // Returns None if tables are absent or corrupt
+    // 读取 SMBIOS 入口点，解析表...
+    // 如果表不存在或损坏则返回 None
     Some((
         SmbiosReady { _private: () },
         SmbiosTables {
@@ -395,8 +378,8 @@ pub fn init_smbios() -> Option<(SmbiosReady, SmbiosTables)> {
 }
 
 pub fn init_sensors() -> Option<(SensorsReady, SensorCache)> {
-    // Initialize SDR repository, read all sensors...
-    // Returns None if IPMI subsystem is not responsive
+    // 初始化 SDR 仓库，读取所有传感器...
+    // 如果 IPMI 子系统无响应则返回 None
     Some((
         SensorsReady { _private: () },
         SensorCache {
@@ -415,8 +398,8 @@ pub fn init_sensors() -> Option<(SensorsReady, SensorCache)> {
 }
 
 pub fn init_sel() -> Option<(SelReady, TypedSelSummary)> {
-    // In production: read SEL entries, parse via ch07's TryFrom,
-    // classify via classify_event_health(), aggregate via summarize_sel().
+    // 生产中：读取 SEL 条目，通过 ch07 的 TryFrom 解析，
+    // 通过 classify_event_health() 分类，通过 summarize_sel() 汇总。
     Some((
         SelReady { _private: () },
         TypedSelSummary {
@@ -433,11 +416,10 @@ pub fn init_sel() -> Option<(SelReady, TypedSelSummary)> {
 }
 ```
 
-Now, functions that populate builder fields from a data source **require the
-corresponding proof token**:
+现在，从数据源填充构建器字段的函数**需要相应的证明令牌**：
 
 ```rust,ignore
-/// Populate SMBIOS-sourced fields. Requires proof SMBIOS is available.
+/// 从 SMBIOS 填充字段。需要 SMBIOS 可用的证明。
 fn populate_from_smbios<P, S>(
     builder: ComputerSystemBuilder<MissingField, MissingField, P, S>,
     _proof: &SmbiosReady,
@@ -450,8 +432,7 @@ fn populate_from_smbios<P, S>(
         .serial_number(tables.serial_number.clone())
 }
 
-/// Fallback when SMBIOS is unavailable — supplies required fields
-/// with safe defaults.
+/// SMBIOS 不可用时的回退 — 用安全默认值提供必需字段。
 fn populate_smbios_fallback<P, S>(
     builder: ComputerSystemBuilder<MissingField, MissingField, P, S>,
 ) -> ComputerSystemBuilder<HasField, HasField, P, S> {
@@ -461,7 +442,7 @@ fn populate_smbios_fallback<P, S>(
 }
 ```
 
-The handler chooses the path based on which tokens are available:
+处理器根据可用的令牌选择路径：
 
 ```rust,ignore
 fn build_computer_system(
@@ -478,25 +459,20 @@ fn build_computer_system(
         None => populate_smbios_fallback(builder),
     };
 
-    // Both paths produce HasField for Name and UUID.
-    // .build() is available either way.
+    // 两条路径都为 Name 和 UUID 产生 HasField。
+    // 无论哪种方式 .build() 都可用。
     builder.build("1")
 }
 ```
 
-**Bug class eliminated:** calling into a subsystem that failed initialization.
-If SMBIOS didn't parse, you don't have a `SmbiosReady` token — the compiler forces
-you through the fallback path. No runtime `if (smbios != NULL)` to forget.
+**消除的 bug 类别：** 调用已失败初始化的子系统。如果 SMBIOS 未解析，你没有 `SmbiosReady` 令牌——编译器强制你走回退路径。没有运行时 `if (smbios != NULL)` 可以忘记。
 
-### Combining Source Tokens with Capability Mixins (ch08)
+### 结合源令牌与能力混合（ch08）
 
-With multiple Redfish resource types to serve (ComputerSystem, Chassis, Manager,
-Thermal, Power), source-population logic repeats across handlers. The **mixin**
-pattern from ch08 eliminates this duplication. Declare what sources a handler has,
-and blanket impls provide the population methods automatically:
+有多种 Redfish 资源类型要服务（ComputerSystem、Chassis、Manager、Thermal、Power），源填充逻辑在处理器之间重复。ch08 的**混合**模式消除了这种重复。声明处理器有哪些源，空白 impl 自动提供填充方法：
 
 ```rust,ignore
-/// ── Ingredient Traits (ch08) for data sources ──
+/// ── 数据源的成分 trait（ch08） ──
 
 pub trait HasSmbios {
     fn smbios(&self) -> &(SmbiosReady, SmbiosTables);
@@ -510,7 +486,7 @@ pub trait HasSel {
     fn sel(&self) -> &(SelReady, TypedSelSummary);
 }
 
-/// ── Mixin: any handler with SMBIOS + Sensors gets identity population ──
+/// ── 混合：有任何 SMBIOS + 传感器的处理器获得身份填充 ──
 
 pub trait IdentityMixin: HasSmbios {
     fn populate_identity<P, S>(
@@ -526,10 +502,10 @@ pub trait IdentityMixin: HasSmbios {
     }
 }
 
-/// Auto-implement for any type that has SMBIOS capability.
+/// 为有任何 SMBIOS 能力的类型自动实现。
 impl<T: HasSmbios> IdentityMixin for T {}
 
-/// ── Mixin: any handler with Sensors + SEL gets health rollup ──
+/// ── 混合：有任何传感器 + SEL 的处理器获得健康汇总 ──
 
 pub trait HealthMixin: HasSensors + HasSel {
     fn compute_health(&self) -> ResourceStatus {
@@ -544,7 +520,7 @@ pub trait HealthMixin: HasSensors + HasSel {
 
 impl<T: HasSensors + HasSel> HealthMixin for T {}
 
-/// ── Concrete handler owns available sources ──
+/// ── 具体处理器拥有可用源 ──
 
 struct FullPlatformHandler {
     smbios: (SmbiosReady, SmbiosTables),
@@ -562,33 +538,27 @@ impl HasSel     for FullPlatformHandler {
     fn sel(&self) -> &(SelReady, TypedSelSummary) { &self.sel }
 }
 
-// FullPlatformHandler automatically gets:
-//   IdentityMixin::populate_identity()   (via HasSmbios)
-//   HealthMixin::compute_health()        (via HasSensors + HasSel)
+// FullPlatformHandler 自动获得:
+//   IdentityMixin::populate_identity()   (通过 HasSmbios)
+//   HealthMixin::compute_health()        (通过 HasSensors + HasSel)
 //
-// A SensorsOnlyHandler that impls HasSensors but NOT HasSel
-// would get IdentityMixin (if it has SMBIOS) but NOT HealthMixin.
-// Calling .compute_health() on it → compile error.
+// 一个仅实现 HasSensors 但没有 HasSel 的 SensorsOnlyHandler
+// 会获得 IdentityMixin（如果它有 SMBIOS）但不会获得 HealthMixin。
+// 在其上调用 .compute_health() → 编译错误。
 ```
 
-This directly mirrors ch08's `BaseBoardController` pattern: ingredient traits
-declare what you have, mixin traits provide behavior via blanket impls, and
-the compiler gates each mixin on its prerequisites. Adding a new data
-source (e.g., `HasNvme`) plus a mixin (e.g., `StorageMixin: HasNvme + HasSel`)
-gives health rollup for storage to every handler that has both — automatically.
+这直接镜像 ch08 的 `BaseBoardController` 模式：成分 trait 声明你有什么，混合 trait 通过空白 impl 提供行为，编译器在先决条件上限制每个混合。添加新数据源（例如 `HasNvme`）加上混合（例如 `StorageMixin: HasNvme + HasSel`）自动为每个同时拥有两者的处理器提供存储健康汇总。
 
 ---
 
-## Section 3 — Dimensional Types at the Serialization Boundary (ch06)
+## 第3节 — 序列化边界的量纲类型（ch06）
 
-On the client side (ch17 §4), dimensional types prevent **reading** °C as RPM.
-On the server side, they prevent **writing** RPM into a Celsius JSON field. This
-is arguably more dangerous — a wrong value on the server propagates to every client.
+在客户端（ch17 §4），量纲类型防止**读取**摄氏度为 RPM。在服务器端，它们防止**写入** RPM 到摄氏度 JSON 字段。这可以说更危险——服务器端的错误值会传播到每个客户端。
 
 ```rust,ignore
 use serde::Serialize;
 
-// ──── Dimensional types from ch06, with Serialize ────
+// ──── ch06 的量纲类型，带 Serialize ────
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize)]
 pub struct Celsius(pub f64);
@@ -599,15 +569,15 @@ pub struct Rpm(pub u32);
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize)]
 pub struct Watts(pub f64);
 
-// ──── Redfish Thermal response members ────
-// Field types enforce which unit belongs in which JSON property.
+// ──── Redfish Thermal 响应成员 ────
+// 字段类型强制哪个单位属于哪个 JSON 属性。
 
 #[derive(Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct TemperatureMember {
     pub member_id: String,
     pub name: String,
-    pub reading_celsius: Celsius,           // ← must be Celsius
+    pub reading_celsius: Celsius,           // ← 必须是 Celsius
     #[serde(skip_serializing_if = "Option::is_none")]
     pub upper_threshold_critical: Option<Celsius>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -620,8 +590,8 @@ pub struct TemperatureMember {
 pub struct FanMember {
     pub member_id: String,
     pub name: String,
-    pub reading: Rpm,                       // ← must be Rpm
-    pub reading_units: &'static str,        // always "RPM"
+    pub reading: Rpm,                       // ← 必须是 Rpm
+    pub reading_units: &'static str,        // 总是 "RPM"
     pub status: ResourceStatus,
 }
 
@@ -630,13 +600,13 @@ pub struct FanMember {
 pub struct PowerControlMember {
     pub member_id: String,
     pub name: String,
-    pub power_consumed_watts: Watts,        // ← must be Watts
+    pub power_consumed_watts: Watts,        // ← 必须是 Watts
     #[serde(skip_serializing_if = "Option::is_none")]
     pub power_capacity_watts: Option<Watts>,
     pub status: ResourceStatus,
 }
 
-// ──── Building a Thermal response from sensor cache ────
+// ──── 从传感器缓存构建 Thermal 响应 ────
 
 fn build_thermal_response(
     _proof: &SensorsReady,
@@ -672,7 +642,7 @@ fn build_thermal_response(
             },
         },
 
-        // ❌ Compile error — can't put Rpm in a Celsius field:
+        // ❌ 编译错误 — 不能把 Rpm 放入 Celsius 字段:
         // TemperatureMember {
         //     reading_celsius: cache.fan_readings[0].1,  // Rpm ≠ Celsius
         //     ...
@@ -701,39 +671,33 @@ fn build_thermal_response(
 }
 ```
 
-**Bug class eliminated:** unit confusion at serialization. The Redfish schema says
-`ReadingCelsius` is in °C. The Rust type system says `reading_celsius` must be
-`Celsius`. If a developer accidentally passes `Rpm(8400)` or `Watts(285.0)`, the
-compiler catches it before the value ever reaches JSON.
+**消除的 bug 类别：** 序列化时的单位混淆。Redfish 模式规定 `ReadingCelsius` 是摄氏度。Rust 类型系统规定 `reading_celsius` 必须是 `Celsius`。如果开发者意外传入 `Rpm(8400)` 或 `Watts(285.0)`，编译器在值到达 JSON 之前就捕获它。
 
 ---
 
-## Section 4 — Health Rollup as a Typed Fold
+## 第4节 — 作为类型化折叠的健康汇总
 
-Redfish `Status.Health` is a *rollup* — the worst health of all sub-components.
-In C, this is typically a series of `if` checks that inevitably misses a source.
-With typed enums and `Ord`, the rollup is a one-line fold — and the compiler
-ensures every source contributes:
+Redfish `Status.Health` 是一个*汇总*——所有子组件中最差的健康状态。在 C 中，这通常是一系列 `if` 检查，必然遗漏一个源。有了类型化枚举和 `Ord`，汇总是一行折叠——编译器确保每个源都贡献：
 
 ```rust,ignore
-/// Roll up health from multiple sources.
-/// Ord on HealthValue: OK < Warning < Critical.
-/// Returns the worst (max) value.
+/// 从多个源汇总健康状态。
+/// HealthValue 上的 Ord: OK < Warning < Critical。
+/// 返回最差（最大）值。
 fn rollup(sources: &[HealthValue]) -> HealthValue {
     sources.iter().copied().max().unwrap_or(HealthValue::OK)
 }
 
-/// Compute system-level health from all sub-components.
-/// Takes explicit references to every source — the caller must provide ALL of them.
+/// 从所有子组件计算系统级健康状态。
+/// 获取每个源的显式引用 — 调用者必须提供所有源。
 fn compute_system_health(
     sensors: Option<&(SensorsReady, SensorCache)>,
     sel: Option<&(SelReady, TypedSelSummary)>,
 ) -> ResourceStatus {
     let mut inputs = Vec::new();
 
-    // ── Live sensor readings ──
+    // ── 实时传感器读数 ──
     if let Some((_proof, cache)) = sensors {
-        // Temperature health (dimensional: Celsius comparison)
+        // 温度健康（量纲：摄氏度比较）
         if cache.cpu_temp > Celsius(95.0) {
             inputs.push(HealthValue::Critical);
         } else if cache.cpu_temp > Celsius(85.0) {
@@ -742,7 +706,7 @@ fn compute_system_health(
             inputs.push(HealthValue::OK);
         }
 
-        // Fan health (dimensional: Rpm comparison)
+        // 风扇健康（量纲：RPM 比较）
         for (_name, rpm) in &cache.fan_readings {
             if *rpm < Rpm(500) {
                 inputs.push(HealthValue::Critical);
@@ -753,7 +717,7 @@ fn compute_system_health(
             }
         }
 
-        // PSU health (dimensional: Watts comparison)
+        // PSU 健康（量纲：瓦特比较）
         for (_name, watts) in &cache.psu_power {
             if *watts > Watts(800.0) {
                 inputs.push(HealthValue::Critical);
@@ -763,9 +727,8 @@ fn compute_system_health(
         }
     }
 
-    // ── SEL per-subsystem health (from ch07's TypedSelSummary) ──
-    // Each subsystem's health was derived by exhaustive matching over
-    // every sensor type and event variant. No information was lost.
+    // ── SEL 每子系统健康（来自 ch07 的 TypedSelSummary） ──
+    // 每个子系统的健康状态由对每种传感器类型和事件变体的穷尽匹配导出。没有信息丢失。
     if let Some((_proof, sel_summary)) = sel {
         inputs.push(sel_summary.processor_health);
         inputs.push(sel_summary.memory_health);
@@ -786,32 +749,23 @@ fn compute_system_health(
 }
 ```
 
-**Bug class eliminated:** incomplete health rollup. In C, forgetting to include PSU
-status in the health calculation is a silent bug — the system reports "OK" while a
-PSU is failing. Here, `compute_system_health` takes explicit references to every
-data source. The SEL contribution is no longer a lossy `bool` — it's seven
-per-subsystem `HealthValue` fields derived by exhaustive matching in ch07's consumer
-pipeline. Adding a new SEL sensor type forces the classifier to handle it; adding a
-new subsystem field forces the rollup to include it.
+**消除的 bug 类别：** 不完整的健康汇总。在 C 中，忘记在健康计算中包含 PSU 状态是一个静默 bug——系统在 PSU 故障时报告"OK"。这里，`compute_system_health` 获取每个数据源的显式引用。SEL 贡献不再是 有损的 `bool`——它是七个每子系统 `HealthValue` 字段，通过 ch07 使用者管道中的穷尽匹配导出。添加新 SEL 传感器类型强制分类器处理它；添加新子系统字段强制汇总包含它。
 
 ---
 
-## Section 5 — Schema Versioning with Phantom Types (ch09)
+## 第5节 — 带幽灵类型的模式版本控制（ch09）
 
-If the BMC advertises `ComputerSystem.v1_13_0`, the response **must** include
-properties introduced in that schema version (`LastResetTime`, `BootProgress`).
-Advertising v1.13 without those fields is a Redfish Interop Validator failure.
-Phantom version markers make this a compile-time contract:
+如果 BMC 广告 `ComputerSystem.v1_13_0`，响应**必须**包含该模式版本引入的属性（`LastResetTime`、`BootProgress`）。广告 v1.13 但没有这些字段是 Redfish Interop Validator 失败。幽灵版本标记使这成为编译时契约：
 
 ```rust,ignore
 use std::marker::PhantomData;
 
-// ──── Schema Version Markers ────
+// ──── 模式版本标记 ────
 
 pub struct V1_5;
 pub struct V1_13;
 
-// ──── Version-Aware Response ────
+// ──── 版本感知响应 ────
 
 pub struct ComputerSystemResponse<V> {
     pub base: ComputerSystemBase,
@@ -829,7 +783,7 @@ pub struct ComputerSystemBase {
     pub bios_version: Option<String>,
 }
 
-// Methods available on ALL versions:
+// 所有版本可用的方法:
 impl<V> ComputerSystemResponse<V> {
     pub fn base_json(&self) -> serde_json::Value {
         serde_json::json!({
@@ -842,27 +796,27 @@ impl<V> ComputerSystemResponse<V> {
     }
 }
 
-// ──── v1.13-specific fields ────
+// ──── v1.13 特定字段 ────
 
-/// Date and time of the last system reset.
+/// 上次系统重置的日期和时间。
 pub struct LastResetTime(pub String);
 
-/// Boot progress information.
+/// 引导进度信息。
 pub struct BootProgress {
     pub last_state: String,
     pub last_state_time: String,
 }
 
 impl ComputerSystemResponse<V1_13> {
-    /// LastResetTime — REQUIRED in v1.13+.
-    /// This method only exists on V1_13. If the BMC advertises v1.13
-    /// and the handler doesn't call this, the field is missing.
+    /// LastResetTime — v1.13+ 必需。
+    /// 此方法仅在 V1_13 上存在。如果 BMC 广告 v1.13
+    /// 而处理器不调用此方法，该字段将缺失。
     pub fn last_reset_time(&self) -> LastResetTime {
-        // Read from RTC or boot timestamp register
+        // 从 RTC 或引导时间戳寄存器读取
         LastResetTime("2026-03-16T08:30:00Z".to_string())
     }
 
-    /// BootProgress — REQUIRED in v1.13+.
+    /// BootProgress — v1.13+ 必需。
     pub fn boot_progress(&self) -> BootProgress {
         BootProgress {
             last_state: "OSRunning".to_string(),
@@ -870,7 +824,7 @@ impl ComputerSystemResponse<V1_13> {
         }
     }
 
-    /// Build the full v1.13 JSON response, including version-specific fields.
+    /// 构建完整的 v1.13 JSON 响应，包括版本特定字段。
     pub fn to_json(&self) -> serde_json::Value {
         let mut obj = self.base_json();
         obj["@odata.type"] =
@@ -890,7 +844,7 @@ impl ComputerSystemResponse<V1_13> {
 }
 
 impl ComputerSystemResponse<V1_5> {
-    /// v1.5 JSON — no LastResetTime, no BootProgress.
+    /// v1.5 JSON — 无 LastResetTime，无 BootProgress。
     pub fn to_json(&self) -> serde_json::Value {
         let mut obj = self.base_json();
         obj["@odata.type"] =
@@ -898,8 +852,8 @@ impl ComputerSystemResponse<V1_5> {
         obj
     }
 
-    // last_reset_time() doesn't exist here.
-    // Calling it → compile error:
+    // last_reset_time() 在此处不存在。
+    // 调用它 → 编译错误:
     //   let resp: ComputerSystemResponse<V1_5> = ...;
     //   resp.last_reset_time();
     //   ❌ ERROR: method `last_reset_time` not found for
@@ -907,31 +861,26 @@ impl ComputerSystemResponse<V1_5> {
 }
 ```
 
-**Bug class eliminated:** schema version mismatch. If the BMC is configured to
-advertise v1.13, use `ComputerSystemResponse<V1_13>` and the compiler ensures
-every v1.13-required field is produced. Downgrade to v1.5? Change the type
-parameter — the v1.13 methods vanish, and no dead fields leak into the response.
+**消除的 bug 类别：** 模式版本不匹配。如果 BMC 配置为广告 v1.13，使用 `ComputerSystemResponse<V1_13>`，编译器确保每个 v1.13 必需字段都被产生。降级到 v1.5？更改类型参数——v1.13 方法消失，没有死字段泄露到响应中。
 
 ---
 
-## Section 6 — Typed Action Dispatch (ch02 Inverted)
+## 第6节 — 类型化动作分发（ch02 反向）
 
-In ch02, the typed command pattern binds `Request → Response` on the **client**
-side. On the **server** side, the same pattern validates incoming action payloads
-and dispatches them type-safely — the inverse direction.
+在 ch02 中，类型化命令模式在**客户端**绑定 `Request → Response`。在**服务器端**，相同模式验证入站动作有效负载并类型安全地分发——反方向。
 
 ```rust,ignore
 use serde::Deserialize;
 
-// ──── Action Trait (mirror of ch02's IpmiCmd trait) ────
+// ──── 动作 trait（ch02 IpmiCmd trait 的镜像） ────
 
-/// A Redfish action: the framework deserializes Params from the POST body,
-/// then calls execute(). If the JSON doesn't match Params, deserialization
-/// fails — execute() is never called with bad input.
+/// Redfish 动作：框架从 POST body 反序列化为 Params，
+/// 然后调用 execute()。如果 JSON 与 Params 不匹配，反序列化
+/// 失败 — execute() 从不以坏输入调用。
 pub trait RedfishAction {
-    /// The expected JSON body structure.
+    /// 预期的 JSON body 结构。
     type Params: serde::de::DeserializeOwned;
-    /// The result of executing the action.
+    /// 执行动作的结果。
     type Result: serde::Serialize;
 
     fn execute(&self, params: Self::Params) -> Result<Self::Result, RedfishError>;
@@ -971,12 +920,12 @@ impl RedfishAction for ComputerSystemReset {
     fn execute(&self, params: ResetParams) -> Result<(), RedfishError> {
         match params.reset_type {
             ResetType::GracefulShutdown => {
-                // Send ACPI shutdown to host
+                // 发送 ACPI 关机到主机
                 println!("Initiating ACPI shutdown");
                 Ok(())
             }
             ResetType::ForceOff => {
-                // Assert power-off to host
+                // 强制关闭主机电源
                 println!("Forcing power off");
                 Ok(())
             }
@@ -996,7 +945,7 @@ impl RedfishAction for ComputerSystemReset {
                 println!("Simulating power button press");
                 Ok(())
             }
-            // Exhaustive — compiler catches missing variants
+            // 穷尽 — 编译器捕获缺失变体
         }
     }
 }
@@ -1040,61 +989,58 @@ impl RedfishAction for ManagerResetToDefaults {
     }
 }
 
-// ──── Generic Action Dispatcher ────
+// ──── 通用动作分发器 ────
 
 fn dispatch_action<A: RedfishAction>(
     action: &A,
     raw_body: &str,
 ) -> Result<A::Result, RedfishError> {
-    // Deserialization validates the payload structure.
-    // If the JSON doesn't match A::Params, this fails
-    // and execute() is never called.
+    // 反序列化验证有效负载结构。
+    // 如果 JSON 与 A::Params 不匹配，这失败
+    // 而 execute() 从不被调用。
     let params: A::Params = serde_json::from_str(raw_body)
         .map_err(|e| RedfishError::InvalidPayload(e.to_string()))?;
 
     action.execute(params)
 }
 
-// ── Usage ──
+// ── 用法 ──
 
 fn handle_reset_action(body: &str) -> Result<(), RedfishError> {
-    // Type-safe: ResetParams is validated by serde before execute()
+    // 类型安全：ResetParams 由 serde 在 execute() 之前验证
     dispatch_action(&ComputerSystemReset, body)?;
     Ok(())
 
-    // Invalid JSON: {"ResetType": "Explode"}
-    // → serde error: "unknown variant `Explode`"
-    // → execute() never called
+    // 无效 JSON: {"ResetType": "Explode"}
+    // → serde 错误: "unknown variant `Explode`"
+    // → execute() 从不被调用
 
-    // Missing field: {}
-    // → serde error: "missing field `ResetType`"
-    // → execute() never called
+    // 缺失字段: {}
+    // → serde 错误: "missing field `ResetType`"
+    // → execute() 从不被调用
 }
 ```
 
-**Bug classes eliminated:**
-- **Invalid action payload:** serde rejects unknown enum variants and missing fields
-  before `execute()` is called. No manual `if (body["ResetType"] == ...)` chains.
-- **Missing variant handling:** `match params.reset_type` is exhaustive — adding a
-  new `ResetType` variant forces every action handler to be updated.
-- **Type confusion:** `ComputerSystemReset` expects `ResetParams`;
-  `ManagerResetToDefaults` expects `ResetToDefaultsParams`. The trait system prevents
-  passing one action's params to another action's handler.
+**消除的 bug 类别：**
+- **无效动作有效负载：** serde 在调用 `execute()` 之前拒绝未知枚举变体和缺失字段
+  。没有手动的 `if (body["ResetType"] == ...)` 链。
+- **缺失变体处理：** `match params.reset_type` 是穷尽的 — 添加新 `ResetType` 变体强制每个动作处理器更新。
+- **类型混淆：** `ComputerSystemReset` 期望 `ResetParams`；
+  `ManagerResetToDefaults` 期望 `ResetToDefaultsParams`。trait 系统防止将一个动作的参数传递给另一个动作的处理器。
 
 ---
 
-## Section 7 — Putting It All Together: The GET Handler
+## 第7节 — 整合一切：GET 处理器
 
-Here's the complete handler that composes all six sections into a single
-schema-compliant response:
+以下是组合所有六节到一个符合模式的响应的完整处理器：
 
 ```rust,ignore
-/// Complete GET /redfish/v1/Systems/1 handler.
+/// 完整的 GET /redfish/v1/Systems/1 处理器。
 ///
-/// Every required field is enforced by the builder type-state.
-/// Every data source is gated by availability tokens.
-/// Every unit is locked to its dimensional type.
-/// Every health input feeds the typed rollup.
+/// 每个必需字段由构建器类型状态强制。
+/// 每个数据源由可用性令牌限制。
+/// 每个单位锁定在其量纲类型。
+/// 每个健康输入馈入类型化汇总。
 fn handle_get_computer_system(
     smbios: &Option<(SmbiosReady, SmbiosTables)>,
     sensors: &Option<(SensorsReady, SensorCache)>,
@@ -1102,31 +1048,31 @@ fn handle_get_computer_system(
     power_state: PowerStateValue,
     bios_version: Option<String>,
 ) -> serde_json::Value {
-    // ── 1. Health rollup (Section 4) ──
-    // Folds health from sensors + SEL into a single typed status
+    // ── 1. 健康汇总（第4节） ──
+    // 将传感器 + SEL 的健康折叠为单个类型化状态
     let health = compute_system_health(
         sensors.as_ref(),
         sel.as_ref(),
     );
 
-    // ── 2. Builder type-state (Section 1) ──
+    // ── 2. 构建器类型状态（第1节） ──
     let builder = ComputerSystemBuilder::new()
         .power_state(power_state)
         .status(health);
 
-    // ── 3. Source-availability tokens (Section 2) ──
+    // ── 3. 源可用性令牌（第2节） ──
     let builder = match smbios {
         Some((proof, tables)) => {
-            // SMBIOS available — populate from hardware
+            // SMBIOS 可用 — 从硬件填充
             populate_from_smbios(builder, proof, tables)
         }
         None => {
-            // SMBIOS unavailable — safe defaults
+            // SMBIOS 不可用 — 安全默认值
             populate_smbios_fallback(builder)
         }
     };
 
-    // ── 4. Optional enrichment from sensors (Section 3) ──
+    // ── 4. 从传感器可选丰富（第3节） ──
     let builder = if let Some((_proof, cache)) = sensors {
         builder
             .processor_summary(ProcessorSummary {
@@ -1150,21 +1096,21 @@ fn handle_get_computer_system(
         None => builder,
     };
 
-    // ── 5. Build (Section 1) ──
-    // .build() is available because both paths (SMBIOS present / absent)
-    // produce HasField for Name and UUID. The compiler verified this.
+    // ── 5. 构建（第1节） ──
+    // .build() 可用，因为两条路径（SMBIOS 存在/不存在）
+    // 都为 Name 和 UUID 产生 HasField。编译器验证了这一点。
     builder.build("1")
 }
 
-// ──── Server Startup ────
+// ──── 服务器启动 ────
 
 fn main() {
-    // Initialize all data sources — each returns an availability token
+    // 初始化所有数据源 — 每个返回一个可用性令牌
     let smbios = init_smbios();
     let sensors = init_sensors();
     let sel = init_sel();
 
-    // Simulate handler call
+    // 模拟处理器调用
     let response = handle_get_computer_system(
         &smbios,
         &sensors,
@@ -1177,7 +1123,7 @@ fn main() {
 }
 ```
 
-**Expected output:**
+**预期输出：**
 
 ```json
 {
@@ -1205,63 +1151,47 @@ fn main() {
 }
 ```
 
-### What the Compiler Proves (Server Side)
+### 编译器证明的内容（服务器端）
 
-| # | Bug class | How it's prevented | Pattern (Section) |
+| # | bug 类别 | 如何防止 | 模式（节） |
 |---|-----------|-------------------|-------------------|
-| 1 | Missing required field in response | `.build()` requires all type-state markers to be `HasField` | Builder type-state (§1) |
-| 2 | Calling into failed subsystem | Source-availability tokens gate data access | Capability tokens (§2) |
-| 3 | No fallback for unavailable source | Both `match` arms (present/absent) must produce `HasField` | Type-state + exhaustive match (§2) |
-| 4 | Wrong unit in JSON field | `reading_celsius: Celsius` ≠ `Rpm` ≠ `Watts` | Dimensional types (§3) |
-| 5 | Incomplete health rollup | `compute_system_health` takes explicit source refs; SEL provides per-subsystem `HealthValue` via ch07's `TypedSelSummary` | Typed function signature + exhaustive matching (§4) |
-| 6 | Schema version mismatch | `ComputerSystemResponse<V1_13>` has `last_reset_time()`; `V1_5` doesn't | Phantom types (§5) |
-| 7 | Invalid action payload accepted | serde rejects unknown/missing fields before `execute()` | Typed action dispatch (§6) |
-| 8 | Missing action variant handling | `match params.reset_type` is exhaustive | Enum exhaustiveness (§6) |
-| 9 | Wrong action params to wrong handler | `RedfishAction::Params` is an associated type | Typed commands inverted (§6) |
+| 1 | 响应中缺少必需字段 | `.build()` 要求所有类型状态标记为 `HasField` | 构建器类型状态（§1） |
+| 2 | 调用已失败的子系统 | 源可用性令牌限制数据访问 | 能力令牌（§2） |
+| 3 | 不可用源没有回退 | 两条 `match` 分支（存在/不存在）都必须产生 `HasField` | 类型状态 + 穷尽匹配（§2） |
+| 4 | JSON 字段中单位错误 | `reading_celsius: Celsius` ≠ `Rpm` ≠ `Watts` | 量纲类型（§3） |
+| 5 | 健康汇总不完整 | `compute_system_health` 获取显式源引用；SEL 通过 ch07 的 `TypedSelSummary` 提供每子系统 `HealthValue` | 类型化函数签名 + 穷尽匹配（§4） |
+| 6 | 模式版本不匹配 | `ComputerSystemResponse<V1_13>` 有 `last_reset_time()`；`V1_5` 没有 | 幽灵类型（§5） |
+| 7 | 接受无效动作有效负载 | serde 在调用 `execute()` 之前拒绝未知/缺失字段 | 类型化动作分发（§6） |
+| 8 | 缺失动作变体处理 | `match params.reset_type` 是穷尽的 | 枚举穷尽性（§6） |
+| 9 | 错误动作的错误参数 | `RedfishAction::Params` 是关联类型 | 类型化命令反向（§6） |
 
-**Total runtime overhead: zero.** The builder markers, availability tokens, phantom
-version types, and dimensional newtypes all compile away. The JSON produced is
-identical to the hand-rolled C version — minus nine classes of bugs.
+**总运行时开销：零。** 构建器标记、可用性令牌、幽灵版本类型和量纲 newtype 都编译掉。产生的 JSON 与手工编写的 C 版本相同——减去九类 bug。
 
 ---
 
-## The Mirror: Client vs. Server Pattern Map
+## 镜像：客户端与服务器模式映射
 
-| Concern | Client (ch17) | Server (this chapter) |
-|---------|---------------|----------------------|
-| **Boundary direction** | Inbound: JSON → typed values | Outbound: typed values → JSON |
-| **Core principle** | "Parse, don't validate" | "Construct, don't serialize" |
-| **Field completeness** | `TryFrom` validates required fields are present | Builder type-state gates `.build()` on required fields |
-| **Unit safety** | `Celsius` ≠ `Rpm` when reading | `Celsius` ≠ `Rpm` when writing |
-| **Privilege / availability** | Capability tokens gate requests | Availability tokens gate data source access |
-| **Data sources** | Single source (BMC) | Multiple sources (SMBIOS, sensors, SEL, PCIe, ...) |
-| **Schema version** | Phantom types prevent accessing unsupported fields | Phantom types enforce providing version-required fields |
-| **Actions** | Client sends typed action POST | Server validates + dispatches via `RedfishAction` trait |
-| **Health** | Read and trust `Status.Health` | Compute `Status.Health` via typed rollup |
-| **Failure propagation** | One bad parse → one client error | One bad serialization → every client sees wrong data |
+| 关注点 | 客户端（ch17） | 服务器（本章） |
+|---------|---------------|--------------------|
+| **边界方向** | 入站：JSON → 类型化值 | 出站：类型化值 → JSON |
+| **核心原则** | "解析，不要验证" | "构造，不要序列化" |
+| **字段完整性** | `TryFrom` 验证必需字段存在 | 构建器类型状态在必需字段上限制 `.build()` |
+| **单位安全** | 读取时 `Celsius` ≠ `Rpm` | 写入时 `Celsius` ≠ `Rpm` |
+| **权限/可用性** | 能力令牌限制请求 | 可用性令牌限制数据源访问 |
+| **数据源** | 单个源（BMC） | 多源（SMBIOS、传感器、SEL、PCIe、...） |
+| **模式版本** | 幽灵类型防止访问不支持的字段 | 幽灵类型强制提供版本必需字段 |
+| **动作** | 客户端发送类型化动作 POST | 服务器通过 `RedfishAction` trait 验证和分发 |
+| **健康** | 读取并信任 `Status.Health` | 通过类型化汇总计算 `Status.Health` |
+| **故障传播** | 一个坏解析 → 一个客户端错误 | 一个坏序列化 → 每个客户端看到错误数据 |
 
-The two chapters form a complete story. Ch17: *"Every response I consume is
-type-checked."* This chapter: *"Every response I produce is type-checked."* The
-same patterns flow in both directions — the type system doesn't know or care
-which end of the wire you're on.
+这两章形成一个完整的故事。第17章："我消费的每个响应都是类型检查的。" 本章："我产生的每个响应都是类型检查的。" 相同的模式双向流动——类型系统不知道或不在乎你在线的哪一端。
 
-## Key Takeaways
+## 关键要点
 
-1. **"Construct, don't serialize"** is the server-side mirror of "parse, don't
-   validate" — use builder type-state so `.build()` only exists when all required
-   fields are present.
-2. **Source-availability tokens prove initialization** — the same capability token
-   pattern from ch04, repurposed to prove a data source is ready.
-3. **Dimensional types protect producers and consumers** — putting `Rpm` in a
-   `ReadingCelsius` field is a compile error, not a customer-reported bug.
-4. **Health rollup is a typed fold** — `Ord` on `HealthValue` plus explicit source
-   references mean the compiler catches "forgot to include PSU status."
-5. **Schema versioning at the type level** — phantom type parameters make
-   version-specific fields appear and disappear at compile time.
-6. **Action dispatch inverts ch02** — `serde` deserializes the payload into a
-   typed `Params` struct, and exhaustive matching on enum variants means adding a
-   new `ResetType` forces every handler to be updated.
-7. **Server-side bugs propagate to every client** — that's why compile-time
-   correctness on the producer side is even more critical than on the consumer side.
-
----
+1. **"构造，不要序列化"** 是"解析，不要验证"的服务器端镜像——使用构建器类型状态使 `.build()` 仅在所有必需字段存在时才可用。
+2. **源可用性令牌证明初始化**——ch04 的相同能力令牌模式，重新用于证明数据源已就绪。
+3. **量纲类型保护生产者和消费者**——将 `Rpm` 放入 `ReadingCelsius` 字段是编译错误，不是客户报告的 bug。
+4. **健康汇总是类型化折叠**——`HealthValue` 上的 `Ord` 加上显式源引用意味着编译器捕获"忘记包含 PSU 状态"。
+5. **类型级的模式版本控制**——幽灵类型参数使版本特定字段在编译时出现和消失。
+6. **动作分发反转 ch02**——`serde` 将有效负载反序列化为类型化 `Params` 结构，枚举变体上的穷尽匹配意味着添加新 `ResetType` 强制每个处理器更新。
+7. **服务器端 bug 传播到每个客户端**——这就是为什么生产者端的编译时正确性比消费者端更关键。

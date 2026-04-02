@@ -1,14 +1,14 @@
-## Smart Pointers: When Single Ownership Isn't Enough
+## 智能指针：当单一所有权不够时
 
-> **What you'll learn:** `Box<T>`, `Rc<T>`, `Arc<T>`, `Cell<T>`, `RefCell<T>`, and `Cow<'a, T>` —
-> when to use each, how they compare to C#'s GC-managed references, `Drop` as Rust's `IDisposable`,
-> `Deref` coercion, and a decision tree for choosing the right smart pointer.
+> **学习内容：** `Box<T>`、`Rc<T>`、`Arc<T>`、`Cell<T>`、`RefCell<T>`和`Cow<'a, T>`——
+> 何时使用每个、如何对比C#的GC管理引用、`Drop`作为Rust的`IDisposable`、
+> `Deref`强制解引用，以及选择正确智能指针的决策树。
 >
-> **Difficulty:** 🔴 Advanced
+> **难度：** 🔴 高级
 
-In C#, every object is essentially reference-counted by the GC. In Rust, single ownership is the default — but sometimes you need shared ownership, heap allocation, or interior mutability. That's where smart pointers come in.
+在C#中，每个对象本质上都由GC进行引用计数。在Rust中，单一所有权是默认的——但有时你需要共享所有权、堆分配或内部可变性。这就是智能指针的用武之地。
 
-### Box&lt;T&gt; — Simple Heap Allocation
+### Box&lt;T&gt; — 简单堆分配
 ```rust
 // Stack allocation (default in Rust)
 let x = 42;           // on the stack
@@ -33,7 +33,7 @@ let list = List::Cons(1, Box::new(List::Cons(2, Box::new(List::Nil))));
 var list = new LinkedListNode<int>(1);  // always heap-allocated
 ```
 
-### Rc&lt;T&gt; — Shared Ownership (Single Thread)
+### Rc&lt;T&gt; — 共享所有权（单线程）
 ```rust
 use std::rc::Rc;
 
@@ -48,7 +48,7 @@ println!("Count: {}", Rc::strong_count(&shared)); // 3
 // Common use: shared configuration, graph nodes, tree structures
 ```
 
-### Arc&lt;T&gt; — Shared Ownership (Thread-Safe)
+### Arc&lt;T&gt; — 共享所有权（线程安全）
 ```rust
 use std::sync::Arc;
 use std::thread;
@@ -72,7 +72,7 @@ var data = new List<int> { 1, 2, 3 };
 // Can share freely across threads (but mutation is still unsafe!)
 ```
 
-### Cell&lt;T&gt; and RefCell&lt;T&gt; — Interior Mutability
+### Cell&lt;T&gt;和RefCell&lt;T&gt; — 内部可变性
 ```rust
 use std::cell::RefCell;
 
@@ -101,7 +101,7 @@ impl Logger {
 // Use sparingly — prefer compile-time checking when possible
 ```
 
-### Cow&lt;'a, str&gt; — Clone on Write
+### Cow&lt;'a, str&gt; — 写时克隆
 ```rust
 use std::borrow::Cow;
 
@@ -122,7 +122,7 @@ let dirty = normalize("hello\tworld");    // Cow::Owned — allocated
 println!("{clean} / {dirty}");
 ```
 
-### Drop: Rust's `IDisposable`
+### Drop：Rust的`IDisposable`
 
 In C#, `IDisposable` + `using` handles resource cleanup. Rust's equivalent is the `Drop` trait — but it's **automatic**, not opt-in:
 
@@ -162,11 +162,11 @@ fn main() {
 }   // scratch.tmp deleted automatically here
 ```
 
-**Key difference from C#:** In Rust, *every* type can have deterministic cleanup. You never forget `using` because there's nothing to forget — `Drop` runs when the owner goes out of scope. This pattern is called **RAII** (Resource Acquisition Is Initialization).
+**与C#的关键差异：** 在Rust中，*每个*类型都可以有确定性的清理。你永远不会忘记`using`，因为没有什么可以忘记——`Drop`在所有者超出作用域时运行。这个模式称为**RAII**（资源获取即初始化）。
 
-> **Rule**: If your type holds a resource (file handle, network connection, lock guard, temp file), implement `Drop`. The ownership system guarantees it runs exactly once.
+> **规则**：如果你的类型持有资源（文件句柄、网络连接、锁守卫、临时文件），实现`Drop`。所有权系统保证它恰好运行一次。
 
-### Deref Coercion: Automatic Smart Pointer Unwrapping
+### Deref强制解引用：自动智能指针展开
 
 Rust automatically "unwraps" smart pointers when you call methods or pass them to functions. This is called **Deref coercion**:
 
@@ -190,9 +190,9 @@ greet(&boxed);   // &Box<String> → &String → &str — two levels!
 // Closest: implicit conversion operators, but those require explicit definition
 ```
 
-**Why this matters:** You can pass `&String` where `&str` is expected, `&Vec<T>` where `&[T]` is expected, and `&Box<T>` where `&T` is expected — all without explicit conversion. This is why Rust APIs typically accept `&str` and `&[T]` rather than `&String` and `&Vec<T>`.
+**为什么这很重要：** 你可以传递`&String`到期望`&str`的地方、`&Vec<T>`到期望`&[T]`的地方，以及`&Box<T>`到期望`&T>`的地方——全部无需显式转换。这就是为什么Rust API通常接受`&str`和`&[T]`而不是`&String`和`&Vec<T>`。
 
-### Rc vs Arc: When to Use Which
+### Rc vs Arc：何时使用哪个
 
 | | `Rc<T>` | `Arc<T>` |
 |---|---|---|
@@ -201,9 +201,9 @@ greet(&boxed);   // &Box<String> → &String → &str — two levels!
 | **Compiler enforced** | Won't compile across `thread::spawn` | Works everywhere |
 | **Combine with** | `RefCell<T>` for mutation | `Mutex<T>` or `RwLock<T>` for mutation |
 
-**Rule of thumb:** Start with `Rc`. The compiler will tell you if you need `Arc`.
+**经验法则：** 从`Rc`开始。如果需要`Arc`，编译器会告诉你。
 
-### Decision Tree: Which Smart Pointer?
+### 决策树：选择哪个智能指针？
 
 ```mermaid
 graph TD
@@ -244,15 +244,15 @@ graph TD
 ```
 
 <details>
-<summary><strong>🏋️ Exercise: Choose the Right Smart Pointer</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：选择正确的智能指针</strong>（点击展开）</summary>
 
-**Challenge**: For each scenario, choose the correct smart pointer and explain why.
+**挑战**：对于每个场景，选择正确的智能指针并解释原因。
 
-1. A recursive tree data structure
-2. A shared configuration object read by multiple components (single thread)
-3. A request counter shared across HTTP handler threads
-4. A cache that might return borrowed or owned strings
-5. A logging buffer that needs mutation through a shared reference
+1. 一个递归树数据结构
+2. 一个被多个组件读取的共享配置对象（单线程）
+3. 一个在HTTP处理程序线程间共享的请求计数器
+4. 一个可能返回借用或拥有字符串的缓存
+5. 一个需要通过共享引用进行可变操作的日志缓冲区
 
 <details>
 <summary>🔑 Solution</summary>
@@ -263,7 +263,7 @@ graph TD
 4. **`Cow<'a, str>`** — sometimes returns `&str` (cache hit), sometimes `String` (cache miss)
 5. **`RefCell<Vec<String>>`** — interior mutability behind `&self` (single thread)
 
-**Rule of thumb**: Start with owned types. Reach for `Box` when you need indirection, `Rc`/`Arc` when you need sharing, `RefCell`/`Mutex` when you need interior mutability, `Cow` when you want zero-copy for the common case.
+**经验法则**：从拥有类型开始。当需要间接寻址时使用`Box`，当需要共享时使用`Rc`/`Arc`，当需要内部可变性时使用`RefCell`/`Mutex`，当你想要零拷贝常见情况时使用`Cow`。
 
 </details>
 </details>

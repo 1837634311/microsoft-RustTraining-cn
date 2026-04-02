@@ -1,24 +1,24 @@
-# 10. Async Traits 🟡
+# 10. 异步 Traits 🟡
 
-> **What you'll learn:**
-> - Why async methods in traits took years to stabilize
-> - RPITIT: native async trait methods (Rust 1.75+)
-> - The dyn dispatch challenge and `trait_variant` workaround
-> - Async closures (Rust 1.85+): `async Fn()` and `async FnOnce()`
+> **你将学到：**
+> - 为什么 trait 中的 async 方法花了数年才稳定
+> - RPITIT：原生异步 trait 方法（Rust 1.75+）
+> - dyn dispatch 挑战和 `trait_variant` 变通方案
+> - 异步闭包（Rust 1.85+）：`async Fn()` 和 `async FnOnce()`
 
 ```mermaid
 graph TD
-    subgraph "Async Trait Approaches"
+    subgraph "异步 Trait 方法"
         direction TB
-        RPITIT["RPITIT (Rust 1.75+)<br/>async fn in trait<br/>Static dispatch only"]
-        VARIANT["trait_variant<br/>Auto-generates Send variant<br/>Enables dyn dispatch"]
-        BOXED["Box&lt;dyn Future&gt;<br/>Manual boxing<br/>Works everywhere"]
-        CLOSURE["Async Closures (1.85+)<br/>async Fn() / async FnOnce()<br/>Callbacks & middleware"]
+        RPITIT["RPITIT (Rust 1.75+)<br/>trait 中的 async fn<br/>静态分派"]
+        VARIANT["trait_variant<br/>自动生成 Send 变体<br/>启用 dyn 分派"]
+        BOXED["Box&lt;dyn Future&gt;<br/>手动 boxing<br/>到处可用"]
+        CLOSURE["异步闭包 (1.85+)<br/>async Fn() / async FnOnce()<br/>回调和中间件"]
     end
 
-    RPITIT -->|"Need dyn?"| VARIANT
-    RPITIT -->|"Pre-1.75?"| BOXED
-    CLOSURE -->|"Replaces"| BOXED
+    RPITIT -->|"需要 dyn？"| VARIANT
+    RPITIT -->|"1.75 之前？"| BOXED
+    CLOSURE -->|"取代"| BOXED
 
     style RPITIT fill:#d4efdf,stroke:#27ae60,color:#000
     style VARIANT fill:#e8f4f8,stroke:#2980b9,color:#000
@@ -26,29 +26,29 @@ graph TD
     style CLOSURE fill:#e8daef,stroke:#8e44ad,color:#000
 ```
 
-## The History: Why It Took So Long
+## 历史：为什么花了这么长时间
 
-Async methods in traits were Rust's most requested feature for years. The problem:
+Trait 中的异步方法是 Rust 多年来最受请求的特性。问题是：
 
 ```rust
-// This didn't compile until Rust 1.75 (Dec 2023):
+// 这在 Rust 1.75（2023 年 12 月）之前不能编译：
 trait DataStore {
     async fn get(&self, key: &str) -> Option<String>;
 }
-// Why? Because async fn returns `impl Future<Output = T>`,
-// and `impl Trait` in trait return position wasn't supported.
+// 为什么？因为 async fn 返回 `impl Future<Output = T>`，
+// 而 trait 返回位置中的 `impl Trait` 不被支持。
 ```
 
-The fundamental challenge: when a trait method returns `impl Future`, each implementor returns a *different concrete type*. The compiler needs to know the size of the return type, but trait methods are dynamically dispatched.
+根本挑战：当 trait 方法返回 `impl Future` 时，每个实现者返回的是一个*不同的具体类型*。编译器需要知道返回类型的大小，但 trait 方法是动态分派的。
 
-### RPITIT: Return Position Impl Trait in Trait
+### RPITIT：Trait 返回位置 Impl Trait
 
-Since Rust 1.75, this just works for static dispatch:
+自 Rust 1.75 以来，这对静态分派就可以工作了：
 
 ```rust
 trait DataStore {
     async fn get(&self, key: &str) -> Option<String>;
-    // Desugars to:
+    // 脱糖为：
     // fn get(&self, key: &str) -> impl Future<Output = Option<String>>;
 }
 
@@ -62,7 +62,7 @@ impl DataStore for InMemoryStore {
     }
 }
 
-// ✅ Works with generics (static dispatch):
+// ✅ 与泛型一起使用（静态分派）：
 async fn lookup<S: DataStore>(store: &S, key: &str) {
     if let Some(val) = store.get(key).await {
         println!("{key} = {val}");
@@ -70,49 +70,49 @@ async fn lookup<S: DataStore>(store: &S, key: &str) {
 }
 ```
 
-### dyn Dispatch and Send Bounds
+### dyn 分派和 Send 约束
 
-The limitation: you can't use `dyn DataStore` directly because the compiler doesn't know the size of the returned future:
+限制：你不能直接使用 `dyn DataStore`，因为编译器不知道返回的 future 的大小：
 
 ```rust
-// ❌ Doesn't work:
+// ❌ 不能工作：
 // async fn lookup_dyn(store: &dyn DataStore, key: &str) { ... }
-// Error: the trait `DataStore` is not dyn-compatible because method `get`
-//        is `async`
+// 错误：trait `DataStore` 不是 dyn 兼容的，因为方法 `get`
+//        是 `async`
 
-// ✅ Workaround: Return a boxed future
+// ✅ 变通方案：返回 boxed future
 trait DynDataStore {
     fn get(&self, key: &str) -> Pin<Box<dyn Future<Output = Option<String>> + Send + '_>>;
 }
 
-// Or use the trait_variant macro (see below)
+// 或使用 trait_variant 宏（见下文）
 ```
 
-**The Send problem**: In multi-threaded runtimes, spawned tasks must be `Send`. But async trait methods don't automatically add `Send` bounds:
+**Send 问题**：在多线程运行时中，生成的任务必须是 `Send`。但异步 trait 方法不会自动添加 `Send` 约束：
 
 ```rust
 trait Worker {
-    async fn run(&self); // Future might or might not be Send
+    async fn run(&self); // Future 可能 Send 也可能不 Send
 }
 
 struct MyWorker;
 
 impl Worker for MyWorker {
     async fn run(&self) {
-        // If this uses !Send types, the future is !Send
+        // 如果这使用了 !Send 类型，future 就是 !Send
         let rc = std::rc::Rc::new(42);
         some_work().await;
         println!("{rc}");
     }
 }
 
-// ❌ This fails if the future isn't Send:
-// tokio::spawn(worker.run()); // Requires Send + 'static
+// ❌ 如果 future 不是 Send，这会失败：
+// tokio::spawn(worker.run()); // 要求 Send + 'static
 ```
 
-### The trait_variant Crate
+### trait_variant Crate
 
-The `trait_variant` crate (from the Rust async working group) generates a `Send` variant automatically:
+`trait_variant` crate（来自 Rust async 工作组）自动生成一个 `Send` 变体：
 
 ```rust
 // Cargo.toml: trait-variant = "0.1"
@@ -123,13 +123,13 @@ trait DataStore {
     async fn set(&self, key: &str, value: String);
 }
 
-// Now you have two traits:
-// - DataStore: no Send bound on the futures
-// - SendDataStore: all futures are Send
-// Both have the same methods, implementors implement DataStore
-// and get SendDataStore for free if their futures are Send.
+// 现在你有两个 traits：
+// - DataStore：futures 没有 Send 约束
+// - SendDataStore：所有 futures 都是 Send
+// 两者有相同的方法，实现者实现 DataStore
+// 如果其 futures 是 Send，则免费获得 SendDataStore。
 
-// Use SendDataStore when you need to spawn:
+// 当你需要 spawn 时使用 SendDataStore：
 async fn spawn_lookup(store: Arc<dyn SendDataStore>) {
     tokio::spawn(async move {
         store.get("key").await;
@@ -137,44 +137,41 @@ async fn spawn_lookup(store: Arc<dyn SendDataStore>) {
 }
 ```
 
-### Quick Reference: Async Traits
+### 快速参考：异步 Traits
 
-| Approach | Static Dispatch | Dynamic Dispatch | Send | Syntax Overhead |
+| 方法 | 静态分派 | 动态分派 | Send | 语法开销 |
 |----------|:---:|:---:|:---:|---|
-| Native `async fn` in trait | ✅ | ❌ | Implicit | None |
-| `trait_variant` | ✅ | ✅ | Explicit | `#[trait_variant::make]` |
-| Manual `Box::pin` | ✅ | ✅ | Explicit | High |
-| `async-trait` crate | ✅ | ✅ | `#[async_trait]` | Medium (proc macro) |
+| 原生 `async fn` 在 trait 中 | ✅ | ❌ | 隐式 | 无 |
+| `trait_variant` | ✅ | ✅ | 显式 | `#[trait_variant::make]` |
+| 手动 `Box::pin` | ✅ | ✅ | 显式 | 高 |
+| `async-trait` crate | ✅ | ✅ | `#[async_trait]` | 中等（proc 宏） |
 
-> **Recommendation**: For new code (Rust 1.75+), use native async traits with
-> `trait_variant` when you need `dyn` dispatch. The `async-trait` crate is still
-> widely used but boxes every future — the native approach is zero-cost for
-> static dispatch.
+> **建议**：对于新代码（Rust 1.75+），在需要 `dyn` 分派时使用原生异步 traits 和 `trait_variant`。`async-trait` crate 仍然广泛使用，但它会给每个 future boxing——原生方法对静态分派是零成本的。
 
-### Async Closures (Rust 1.85+)
+### 异步闭包（Rust 1.85+）
 
-Since Rust 1.85, `async closures` are stable — closures that capture their environment and return a future:
+自 Rust 1.85 以来，`async closures` 是稳定的——捕获其环境并返回 future 的闭包：
 
 ```rust
-// Before 1.85: awkward workaround
+// 1.85 之前：尴尬的变通方案
 let urls = vec!["https://a.com", "https://b.com"];
 let fetchers: Vec<_> = urls.iter().map(|url| {
     let url = url.to_string();
-    // Returns a non-async closure that returns an async block
+    // 返回一个非异步闭包，返回一个异步块
     move || async move { reqwest::get(&url).await }
 }).collect();
 
-// After 1.85: async closures just work
+// 1.85 之后：异步闭包就可以工作了
 let fetchers: Vec<_> = urls.iter().map(|url| {
     async move || { reqwest::get(url).await }
-    // ↑ This is an async closure — captures url, returns a Future
+    // ↑ 这是一个异步闭包——捕获 url，返回 Future
 }).collect();
 ```
 
-Async closures implement the new `AsyncFn`, `AsyncFnMut`, and `AsyncFnOnce` traits, which mirror `Fn`, `FnMut`, `FnOnce`:
+异步闭包实现新的 `AsyncFn`、`AsyncFnMut` 和 `AsyncFnOnce` traits，它们镜像 `Fn`、`FnMut`、`FnOnce`：
 
 ```rust
-// Generic function accepting an async closure
+// 接受异步闭包的泛型函数
 async fn retry<F>(max: usize, f: F) -> Result<String, Error>
 where
     F: AsyncFn() -> Result<String, Error>,
@@ -188,16 +185,16 @@ where
 }
 ```
 
-> **Migration tip**: If you have code using `Fn() -> impl Future<Output = T>`,
-> consider switching to `AsyncFn() -> T` for cleaner signatures.
+> **迁移提示**：如果你有使用 `Fn() -> impl Future<Output = T>` 的代码，
+> 考虑切换到 `AsyncFn() -> T` 以获得更干净的签名。
 
 <details>
-<summary><strong>🏋️ Exercise: Design an Async Service Trait</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：设计一个异步 Service Trait</strong>（点击展开）</summary>
 
-**Challenge**: Design a `Cache` trait with async `get` and `set` methods. Implement it twice: once with a `HashMap` (in-memory) and once with a simulated Redis backend (use `tokio::time::sleep` to simulate network latency). Write a generic function that works with both.
+**挑战**：设计一个带有异步 `get` 和 `set` 方法的 `Cache` trait。用 `HashMap`（内存）实现一次，用模拟的 Redis 后端实现一次（使用 `tokio::time::sleep` 模拟网络延迟）。编写一个适用于两者的泛型函数。
 
 <details>
-<summary>🔑 Solution</summary>
+<summary>🔑 答案</summary>
 
 ```rust
 use std::collections::HashMap;
@@ -210,7 +207,7 @@ trait Cache {
     async fn set(&self, key: &str, value: String);
 }
 
-// --- In-memory implementation ---
+// --- 内存实现 ---
 struct MemoryCache {
     store: Mutex<HashMap<String, String>>,
 }
@@ -233,7 +230,7 @@ impl Cache for MemoryCache {
     }
 }
 
-// --- Simulated Redis implementation ---
+// --- 模拟 Redis 实现 ---
 struct RedisCache {
     store: Mutex<HashMap<String, String>>,
     latency: Duration,
@@ -250,7 +247,7 @@ impl RedisCache {
 
 impl Cache for RedisCache {
     async fn get(&self, key: &str) -> Option<String> {
-        sleep(self.latency).await; // Simulate network round-trip
+        sleep(self.latency).await; // 模拟网络往返
         self.store.lock().await.get(key).cloned()
     }
 
@@ -260,7 +257,7 @@ impl Cache for RedisCache {
     }
 }
 
-// --- Generic function working with any Cache ---
+// --- 适用于任何 Cache 的泛型函数 ---
 async fn cache_demo<C: Cache>(cache: &C, label: &str) {
     cache.set("greeting", "Hello, async!".into()).await;
     let val = cache.get("greeting").await;
@@ -277,19 +274,17 @@ async fn main() {
 }
 ```
 
-**Key takeaway**: The same generic function works with both implementations through static dispatch. No boxing, no allocation overhead. For dynamic dispatch, add `trait_variant::make(SendCache: Send)`.
+**关键要点**：相同的泛型函数通过静态分派适用于两种实现。没有 boxing，没有分配开销。对于动态分派，添加 `trait_variant::make(SendCache: Send)`。
 
 </details>
 </details>
 
-> **Key Takeaways — Async Traits**
-> - Since Rust 1.75, you can write `async fn` directly in traits (no `#[async_trait]` crate needed)
-> - `trait_variant::make` auto-generates a `Send` variant for dynamic dispatch
-> - Async closures (`async Fn()`) stabilized in 1.85 — use for callbacks and middleware
-> - Prefer static dispatch (`<S: Service>`) over `dyn` for performance-critical code
+> **核心要点 — 异步 Traits**
+> - 自 Rust 1.75 以来，你可以直接在 traits 中写 `async fn`（不需要 `#[async_trait]` crate）
+> - `trait_variant::make` 为动态分派自动生成 `Send` 变体
+> - 异步闭包（`async Fn()`）在 1.85 中稳定——用于回调和中间件
+> - 对于性能关键代码，优先使用静态分派（`<S: Service>`）而不是 `dyn`
 
-> **See also:** [Ch 13 — Production Patterns](ch13-production-patterns.md) for Tower's `Service` trait, [Ch 6 — Building Futures by Hand](ch06-building-futures-by-hand.md) for manual trait implementations
+> **另见：** [第 13 章 — 生产模式](ch13-production-patterns.md) 了解 Tower 的 `Service` trait，[第 6 章 — 手动构建 Futures](ch06-building-futures-by-hand.md) 了解手动 trait 实现
 
 ***
-
-

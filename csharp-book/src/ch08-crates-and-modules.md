@@ -1,15 +1,15 @@
-## Modules and Crates: Code Organization
+## 模块和 crate：代码组织
 
-> **What you'll learn:** Rust's module system vs C# namespaces and assemblies, `pub`/`pub(crate)`/`pub(super)` visibility,
-> file-based module organization, and how crates map to .NET assemblies.
+> **学习内容：** Rust的模块系统 vs C#命名空间和程序集、`pub`/`pub(crate)`/`pub(super)`可见性、
+> 基于文件的模块组织，以及crate如何映射到.NET程序集。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-Understanding Rust's module system is essential for organizing code and managing dependencies. For C# developers, this is analogous to understanding namespaces, assemblies, and NuGet packages.
+理解Rust的模块系统对于组织代码和管理依赖至关重要。对于C#开发者，这类似于理解命名空间、程序集和NuGet包。
 
-### Rust Modules vs C# Namespaces
+### Rust 模块 vs C# 命名空间
 
-#### C# Namespace Organization
+#### C# 命名空间组织
 ```csharp
 // File: Models/User.cs
 namespace MyApp.Models
@@ -52,7 +52,7 @@ namespace MyApp
 }
 ```
 
-#### Rust Module Organization
+#### Rust 模块组织
 ```rust
 // File: src/models.rs
 pub struct User {
@@ -90,7 +90,7 @@ fn main() {
 }
 ```
 
-### Module Hierarchy and Visibility
+### 模块层次结构和可见性
 
 ```mermaid
 graph TD
@@ -111,7 +111,7 @@ graph TD
 
 > 🟢 Green = public everywhere &nbsp;|&nbsp; 🟡 Yellow = restricted visibility &nbsp;|&nbsp; 🔴 Red = private
 
-#### C# Visibility Modifiers
+#### C# 可见性修饰符
 ```csharp
 namespace MyApp.Data
 {
@@ -133,7 +133,7 @@ namespace MyApp.Data
 }
 ```
 
-#### Rust Visibility Rules
+#### Rust 可见性规则
 ```rust
 // Everything is private by default in Rust
 mod data {
@@ -171,9 +171,9 @@ mod data {
 pub use data::PublicRepository;  // Re-export for external use
 ```
 
-### Module File Organization
+### 模块文件组织
 
-#### C# Project Structure
+#### C# 项目结构
 ```text
 MyApp/
 ├── MyApp.csproj
@@ -188,7 +188,7 @@ MyApp/
 └── Program.cs
 ```
 
-#### Rust Module File Structure
+#### Rust 模块文件结构
 ```text
 my_app/
 ├── Cargo.toml
@@ -207,7 +207,7 @@ my_app/
         └── api_controller.rs
 ```
 
-#### Module Declaration Patterns
+#### 模块声明模式
 ```rust
 // src/models/mod.rs
 pub mod user;      // Declares user.rs as a submodule
@@ -231,12 +231,12 @@ use models::user::*;  // Import all public items from user module
 
 ***
 
-## Crates vs .NET Assemblies
+## Crate vs .NET 程序集
 
-### Understanding Crates
+### 理解Crate
 In Rust, a **crate** is the fundamental unit of compilation and code distribution, similar to how an **assembly** works in .NET.
 
-#### C# Assembly Model
+#### C# 程序集模型
 ```csharp
 // MyLibrary.dll - Compiled assembly
 namespace MyLibrary
@@ -260,7 +260,7 @@ class Program
 }
 ```
 
-#### Rust Crate Model
+#### Rust Crate模型
 ```toml
 # Cargo.toml for library crate
 [package]
@@ -304,7 +304,7 @@ fn main() {
 }
 ```
 
-### Crate Types Comparison
+### Crate类型对比
 
 | C# Concept | Rust Equivalent | Purpose |
 |------------|----------------|---------|
@@ -314,9 +314,9 @@ fn main() {
 | Assembly (.dll/.exe) | Compiled crate | Compilation unit |
 | Solution (.sln) | Workspace | Multi-project organization |
 
-### Workspace vs Solution
+### Workspace vs 解决方案
 
-#### C# Solution Structure
+#### C# 解决方案结构
 ```xml
 <!-- MySolution.sln structure -->
 <Solution>
@@ -327,7 +327,7 @@ fn main() {
 </Solution>
 ```
 
-#### Rust Workspace Structure
+#### Rust Workspace结构
 ```toml
 # Cargo.toml at workspace root
 [workspace]
@@ -358,12 +358,12 @@ tokio = { workspace = true }
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Design a Module Tree</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：设计模块树</strong>（点击展开）</summary>
 
-Given this C# project layout, design the equivalent Rust module tree:
+给定这个C#项目布局，设计等价的Rust模块树：
 
 ```csharp
 // C#

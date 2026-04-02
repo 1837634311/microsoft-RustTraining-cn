@@ -1,7 +1,7 @@
 [book]
 title = "Rust模式"
 authors = ["Rust Training Team"]
-language = "en"
+language = "zh"
 src = "src"
 
 [build]
@@ -19,3 +19,10 @@ command = "mdbook-mermaid"
 [output.html.playground]
 editable = true
 line-numbers = true
+
+[output.epub]
+curly-quotes = true
+footnote-backrefs = true
+no-section-label = false
+use-default-css = true
+additional-css = ["src/epub.css"]

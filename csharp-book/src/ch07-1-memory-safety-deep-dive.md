@@ -1,11 +1,11 @@
-## References vs Pointers
+## 引用 vs 指针
 
-> **What you'll learn:** Rust references vs C# pointers and unsafe contexts, lifetime basics,
-> and why compile-time safety proofs are stronger than C#'s runtime checks (bounds checking, null guards).
+> **学习内容：** Rust引用 vs C#指针和不安全上下文、生命周期基础，
+> 以及为什么编译时安全证明比C#的运行时检查（边界检查、空指针守卫）更强。
 >
-> **Difficulty:** 🟡 Intermediate
+> **难度：** 🟡 中级
 
-### C# Pointers (Unsafe Context)
+### C# 指针（不安全上下文）
 ```csharp
 // C# unsafe pointers (rarely used)
 unsafe void UnsafeExample()
@@ -17,7 +17,7 @@ unsafe void UnsafeExample()
 }
 ```
 
-### Rust References (Safe by Default)
+### Rust 引用（默认安全）
 ```rust
 // Rust references (always safe)
 fn safe_example() {
@@ -30,7 +30,7 @@ fn safe_example() {
 // No "unsafe" keyword needed - borrow checker ensures safety
 ```
 
-### Lifetime Basics for C# Developers
+### C#开发者的生命周期基础
 ```csharp
 // C# - Can return references that might become invalid
 public class LifetimeIssues
@@ -70,9 +70,9 @@ fn valid_reference() -> String {
 
 ***
 
-## Memory Safety: Runtime Checks vs Compile-Time Proofs
+## 内存安全：运行时检查 vs 编译时证明
 
-### C# - Runtime Safety Net
+### C# - 运行时安全网
 ```csharp
 // C# relies on runtime checks and GC
 public class Buffer
@@ -118,7 +118,7 @@ public class Buffer
 }
 ```
 
-### Rust - Compile-Time Guarantees
+### Rust - 编译时保证
 ```rust
 struct Buffer {
     data: Vec<u8>,
@@ -228,12 +228,12 @@ graph TD
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Spot the Safety Bug</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：找出安全漏洞</strong>（点击展开）</summary>
 
-This C# code has a subtle safety bug. Identify it, then write the Rust equivalent and explain why the Rust version **won't compile**:
+这段C#代码有一个微妙的安全漏洞。识别它，然后写出Rust等价版本并解释为什么Rust版本**无法编译**：
 
 ```csharp
 public List<int> GetEvenNumbers(List<int> numbers)
@@ -285,7 +285,7 @@ fn main() {
 }
 ```
 
-**Key insight**: Rust's borrow checker prevents the entire *category* of "mutate while iterating" bugs at compile time. C# catches this at runtime; many languages don't catch it at all.
+**关键洞察**：Rust的借用检查器在编译时防止了整类"迭代时修改"的bug。C#在运行时捕获这个问题；许多语言根本不会捕获它。
 
 </details>
 </details>

@@ -1,13 +1,13 @@
 # Rust `Box<T>`
 
-> **What you'll learn:** Rust's smart pointer types — `Box<T>` for heap allocation, `Rc<T>` for shared ownership, and `Cell<T>`/`RefCell<T>` for interior mutability. These build on the ownership and lifetime concepts from the previous sections. You'll also see a brief introduction to `Weak<T>` for breaking reference cycles.
+> **你将学到什么：** Rust 的智能指针类型——用于堆分配的 `Box<T>`、用于共享所有权的 `Rc<T>`，以及用于内部可变性的 `Cell<T>`/`RefCell<T>`。这些建立在前面章节的所有权和生命周期概念之上。你还将看到对用于打破引用循环的 `Weak<T>` 的简要介绍。
 
-**Why `Box<T>`?** In C, you use `malloc`/`free` for heap allocation. In C++, `std::unique_ptr<T>` wraps `new`/`delete`. Rust's `Box<T>` is the equivalent — a heap-allocated, single-owner pointer that is automatically freed when it goes out of scope. Unlike `malloc`, there's no matching `free` to forget. Unlike `unique_ptr`, there's no use-after-move — the compiler prevents it entirely.
+**为什么使用 `Box<T>`？** 在 C 中，你使用 `malloc`/`free` 进行堆分配。在 C++ 中，`std::unique_ptr<T>` 包装 `new`/`delete`。Rust 的 `Box<T>` 是等价物——一个堆分配的、单一所有者的指针，在超出作用域时自动释放。与 `malloc` 不同，没有要忘记的匹配 `free`。与 `unique_ptr` 不同，没有使用后移动——编译器完全阻止它。
 
-**When to use `Box` vs stack allocation:**
-- The contained type is large and you don't want to copy it on the stack
-- You need a recursive type (e.g., a linked list node that contains itself)
-- You need trait objects (`Box<dyn Trait>`)
+**何时使用 `Box` vs 栈分配：**
+- 所包含的类型很大，你不想在栈上拷贝它
+- 你需要一个递归类型（例如，包含自身的链表节点）
+- 你需要 trait 对象（`Box<dyn Trait>`）
 
 - ```Box<T>``` can be use to create a pointer to a heap allocated type. The pointer is always a fixed size regardless of the type of ```<T>```
 ```rust
@@ -43,9 +43,9 @@ graph LR
     style HG fill:#91e5a3,color:#000,stroke:#333
 ```
 
-## Ownership and Borrowing Visualization
+## 所有权和借用可视化
 
-### C/C++ vs Rust: Pointer and Ownership Management
+### C/C++ vs Rust：指针和所有权管理
 
 ```c
 // C - Manual memory management, potential issues
@@ -127,7 +127,7 @@ graph TD
     style RD fill:#91e5a3,color:#000
 ```
 
-### Borrowing Rules Visualization
+### 借用规则可视化
 
 ```rust
 fn borrowing_rules_example() {
@@ -197,9 +197,9 @@ graph TD
 
 ---
 
-## Interior Mutability: `Cell<T>` and `RefCell<T>`
+## 内部可变性：`Cell<T>` 和 `RefCell<T>`
 
-Recall that by default variables are immutable in Rust. Sometimes it's desirable to have most of a type read-only while permitting write access to a single field.
+回想一下，默认情况下 Rust 中的变量是不可变的。有时希望让类型的大部分只读，同时允许对单个字段进行写访问。
 
 ```rust
 struct Employee {
@@ -208,36 +208,36 @@ struct Employee {
 }
 ```
 
-- Recall that Rust permits a *single mutable* reference to a variable and any number of *immutable* references — enforced at *compile-time*
-- What if we wanted to pass an *immutable* vector of employees, *but* allow the `on_vacation` field to be updated, while ensuring `employee_id` cannot be mutated?
+- 回想一下，Rust 允许对变量有*单个可变*引用和任意数量的*不可变*引用——在*编译时*强制执行
+- 如果我们想传递一个*不可变*的员工向量，*但*允许更新 `on_vacation` 字段，同时确保 `employee_id` 不能被改变，该怎么办？
 
-### `Cell<T>` — interior mutability for Copy types
+### `Cell<T>` — Copy 类型的内部可变性
 
-- `Cell<T>` provides **interior mutability**, i.e., write access to specific elements of references that are otherwise read-only
-- Works by copying values in and out (requires `T: Copy` for `.get()`)
+- `Cell<T>` 提供**内部可变性**，即对原本只读的引用的特定元素进行写访问
+- 通过将值移入移出来工作（`.get()` 需要 `T: Copy`）
 
-### `RefCell<T>` — interior mutability with runtime borrow checking
+### `RefCell<T>` — 带运行时借用检查的内部可变性
 
-- `RefCell<T>` provides a variation that works with references
-    - Enforces Rust borrow-checks at **runtime** instead of compile-time
-    - Allows a single *mutable* borrow, but **panics** if there are any other references outstanding
-    - Use `.borrow()` for immutable access and `.borrow_mut()` for mutable access
+- `RefCell<T>` 提供一种适用于引用的变体
+    - 在**运行时**而不是编译时强制执行 Rust 借用检查
+    - 允许单个*可变*借用，但如果有任何其他引用存在，则**panic**
+    - 使用 `.borrow()` 进行不可变访问，使用 `.borrow_mut()` 进行可变访问
 
-### When to Choose `Cell` vs `RefCell`
+### 何时选择 `Cell` vs `RefCell`
 
-| Criterion | `Cell<T>` | `RefCell<T>` |
+| 标准 | `Cell<T>` | `RefCell<T>` |
 |-----------|-----------|-------------|
-| Works with | `Copy` types (integers, bools, floats) | Any type (`String`, `Vec`, structs) |
-| Access pattern | Copies values in/out (`.get()`, `.set()`) | Borrows in place (`.borrow()`, `.borrow_mut()`) |
-| Failure mode | Cannot fail — no runtime checks | **Panics** if you borrow mutably while another borrow is active |
-| Overhead | Zero — just copies bytes | Small — tracks borrow state at runtime |
-| Use when | You need a mutable flag, counter, or small value inside an immutable struct | You need to mutate a `String`, `Vec`, or complex type inside an immutable struct |
+| 适用于 | `Copy` 类型（整数、布尔、浮点） | 任何类型（`String`、`Vec`、结构体） |
+| 访问模式 | 移入移出值（`.get()`、`.set()`） | 就地借用（`.borrow()`、`.borrow_mut()`） |
+| 失败模式 | 不会失败——无运行时检查 | 如果在另一个借用活跃时可变借用，则**panic** |
+| 开销 | 零——只是拷贝字节 | 小——在运行时跟踪借用状态 |
+| 何时使用 | 你需要在不可变结构体内部设置一个可变标志、计数器或小值 | 你需要在一个不可变结构体内部改变一个 `String`、`Vec` 或复杂类型 |
 
 ---
 
-## Shared Ownership: `Rc<T>`
+## 共享所有权：`Rc<T>`
 
-`Rc<T>` allows reference-counted shared ownership of *immutable* data. What if we wanted to store the same `Employee` in multiple places without copying?
+`Rc<T>` 允许对*不可变*数据进行引用计数的共享所有权。如果我们想在多个地方存储相同的 `Employee` 而不拷贝，该怎么办？
 
 ```rust
 #[derive(Debug)]
@@ -287,9 +287,9 @@ fn main() {
 >
 > **Key distinction**: In C++, you *choose* to use smart pointers. In Rust, owned values (`T`) and borrowing (`&T`) cover most use cases — reach for `Box`/`Rc`/`Arc` only when you need heap allocation or shared ownership.
 
-### Breaking Reference Cycles with `Weak<T>`
+### 使用 `Weak<T>` 打破引用循环
 
-`Rc<T>` uses reference counting — if two `Rc` values point to each other, neither will ever be dropped (a cycle). `Weak<T>` solves this:
+`Rc<T>` 使用引用计数——如果两个 `Rc` 值相互指向，则两者都不会被删除（循环）。`Weak<T>` 解决了这个问题：
 
 ```rust
 use std::rc::{Rc, Weak};
@@ -318,27 +318,27 @@ fn main() {
 
 ---
 
-## Combining `Rc` with Interior Mutability
+## 结合 `Rc` 与内部可变性
 
-The real power emerges when you combine `Rc<T>` (shared ownership) with `Cell<T>` or `RefCell<T>` (interior mutability). This lets multiple owners **read and modify** shared data:
+当你将 `Rc<T>`（共享所有权）与 `Cell<T>` 或 `RefCell<T>`（内部可变性）结合时，真正的力量就显现了。这让多个所有者**读取和修改**共享数据：
 
-| Pattern | Use case |
+| 模式 | 用例 |
 |---------|----------|
-| `Rc<RefCell<T>>` | Shared, mutable data (single-threaded) |
-| `Arc<Mutex<T>>` | Shared, mutable data (multi-threaded — see [ch13](ch13-concurrency.md)) |
-| `Rc<Cell<T>>` | Shared, mutable Copy types (simple flags, counters) |
+| `Rc<RefCell<T>>` | 共享的可变数据（单线程） |
+| `Arc<Mutex<T>>` | 共享的可变数据（多线程——见 [ch13](ch13-concurrency.md)） |
+| `Rc<Cell<T>>` | 共享的可变 Copy 类型（简单标志、计数器） |
 
 ---
 
-# Exercise: Shared ownership and interior mutability
+# 练习：共享所有权和内部可变性
 
-🟡 **Intermediate**
+🟡 **中级**
 
-- **Part 1 (Rc)**: Create an `Employee` struct with `employee_id: u64` and `name: String`. Place it in an `Rc<Employee>` and clone it into two separate `Vec`s (`us_employees` and `global_employees`). Print from both vectors to show they share the same data.
-- **Part 2 (Cell)**: Add an `on_vacation: Cell<bool>` field to `Employee`. Pass an immutable `&Employee` reference to a function and toggle `on_vacation` from inside that function — without making the reference mutable.
-- **Part 3 (RefCell)**: Replace `name: String` with `name: RefCell<String>` and write a function that appends a suffix to the employee's name through an `&Employee` (immutable reference).
+- **第 1 部分（Rc）**：创建一个带有 `employee_id: u64` 和 `name: String` 的 `Employee` 结构体。将其放入 `Rc<Employee>` 并克隆到两个单独的 `Vec`（`us_employees` 和 `global_employees`）。从两个向量打印以显示它们共享相同的数据。
+- **第 2 部分（Cell）**：向 `Employee` 添加 `on_vacation: Cell<bool>` 字段。传递一个不可变的 `&Employee` 引用给函数，并从该函数内部切换 `on_vacation`——而不使引用可变。
+- **第 3 部分（RefCell）**：将 `name: String` 替换为 `name: RefCell<String>`，并编写一个函数，通过 `&Employee`（不可变引用）向员工姓名追加后缀。
 
-**Starter code:**
+**起始代码：**
 ```rust
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;

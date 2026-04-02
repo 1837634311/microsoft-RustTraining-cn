@@ -1,97 +1,96 @@
-## Essential Rust Keywords for C# Developers
+## C#开发者的Rust关键字速查
 
-> **What you'll learn:** A quick-reference mapping of Rust keywords to their C# equivalents —
-> visibility modifiers, ownership keywords, control flow, type definitions, and pattern matching syntax.
+> **学习内容：** Rust关键字到C# equivalents的快速参考映射 — 可见性修饰符、所有权关键字、控制流、类型定义和模式匹配语法。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-Understanding Rust's keywords and their purposes helps C# developers navigate the language more effectively.
+理解Rust的关键字及其用途有助于C#开发者更有效地驾驭这门语言。
 
-### Visibility and Access Control Keywords
+### 可见性和访问控制关键字
 
-#### C# Access Modifiers
+#### C# 访问修饰符
 ```csharp
 public class Example
 {
-    public int PublicField;           // Accessible everywhere
-    private int privateField;        // Only within this class
-    protected int protectedField;    // This class and subclasses
-    internal int internalField;      // Within this assembly
-    protected internal int protectedInternalField; // Combination
+    public int PublicField;           // 到处都可访问
+    private int privateField;        // 仅此类内部
+    protected int protectedField;    // 此类及子类
+    internal int internalField;      // 程序集内部
+    protected internal int protectedInternalField; // 组合
 }
 ```
 
-#### Rust Visibility Keywords
+#### Rust 可见性关键字
 ```rust
-// pub - Makes items public (like C# public)
+// pub - 使项目公开（类似C#的public）
 pub struct PublicStruct {
-    pub public_field: i32,           // Public field
-    private_field: i32,              // Private by default (no keyword)
+    pub public_field: i32,           // 公开字段
+    private_field: i32,              // 默认私有（无关键字）
 }
 
 pub mod my_module {
-    pub(crate) fn crate_public() {}     // Public within current crate (like internal)
-    pub(super) fn parent_public() {}    // Public to parent module
-    pub(self) fn self_public() {}       // Public within current module (same as private)
+    pub(crate) fn crate_public() {}     // 当前crate内公开（类似internal）
+    pub(super) fn parent_public() {}    // 对父模块公开
+    pub(self) fn self_public() {}       // 当前模块内公开（与私有相同）
     
-    pub use super::PublicStruct;        // Re-export (like using alias)
+    pub use super::PublicStruct;        // 重新导出（类似using别名）
 }
 
-// No direct equivalent to C# protected - use composition instead
+// 没有直接等同于C# protected的方案 - 使用组合代替
 ```
 
-### Memory and Ownership Keywords
+### 内存和所有权关键字
 
-#### C# Memory Keywords
+#### C# 内存关键字
 ```csharp
-// ref - Pass by reference
+// ref - 按引用传递
 public void Method(ref int value) { value = 10; }
 
-// out - Output parameter
+// out - 输出参数
 public bool TryParse(string input, out int result) { /* */ }
 
-// in - Readonly reference (C# 7.2+)
-public void ReadOnly(in LargeStruct data) { /* Cannot modify data */ }
+// in - 只读引用（C# 7.2+）
+public void ReadOnly(in LargeStruct data) { /* 无法修改data */ }
 ```
 
-#### Rust Ownership Keywords
+#### Rust 所有权关键字
 ```rust
-// & - Immutable reference (like C# in parameter)
+// & - 不可变引用（类似C# in参数）
 fn read_only(data: &Vec<i32>) {
-    println!("Length: {}", data.len()); // Can read, cannot modify
+    println!("Length: {}", data.len()); // 可以读取，无法修改
 }
 
-// &mut - Mutable reference (like C# ref parameter)
+// &mut - 可变引用（类似C# ref参数）
 fn modify(data: &mut Vec<i32>) {
-    data.push(42); // Can modify
+    data.push(42); // 可以修改
 }
 
-// move - Force move capture in closures
+// move - 强制移动捕获的闭包
 let data = vec![1, 2, 3];
 let closure = move || {
-    println!("{:?}", data); // data is moved into closure
+    println!("{:?}", data); // data被移入闭包
 };
-// data is no longer accessible here
+// data在这里不再可用
 
-// Box - Heap allocation (like C# new for reference types)
-let boxed_data = Box::new(42); // Allocate on heap
+// Box - 堆分配（类似C# new创建引用类型）
+let boxed_data = Box::new(42); // 在堆上分配
 ```
 
-### Control Flow Keywords
+### 控制流关键字
 
-#### C# Control Flow
+#### C# 控制流
 ```csharp
-// return - Exit function with value
+// return - 带值退出函数
 public int GetValue() { return 42; }
 
-// yield return - Iterator pattern
+// yield return - 迭代器模式
 public IEnumerable<int> GetNumbers()
 {
     yield return 1;
     yield return 2;
 }
 
-// break/continue - Loop control
+// break/continue - 循环控制
 foreach (var item in items)
 {
     if (item == null) continue;
@@ -99,89 +98,89 @@ foreach (var item in items)
 }
 ```
 
-#### Rust Control Flow Keywords
+#### Rust 控制流关键字
 ```rust
-// return - Explicit return (usually not needed)
+// return - 显式返回（通常不需要）
 fn get_value() -> i32 {
-    return 42; // Explicit return
-    // OR just: 42 (implicit return)
+    return 42; // 显式返回
+    // 或者: 42 （隐式返回）
 }
 
-// break/continue - Loop control with optional values
+// break/continue - 带可选值的循环控制
 fn find_value() -> Option<i32> {
     loop {
         let value = get_next();
         if value < 0 { continue; }
-        if value > 100 { break None; }      // Break with value
-        if value == 42 { break Some(value); } // Break with success
+        if value > 100 { break None; }      // 带值break
+        if value == 42 { break Some(value); } // 带成功值break
     }
 }
 
-// loop - Infinite loop (like while(true))
+// loop - 无限循环（类似while(true)）
 loop {
     if condition { break; }
 }
 
-// while - Conditional loop
+// while - 条件循环
 while condition {
     // code
 }
 
-// for - Iterator loop
+// for - 迭代器循环
 for item in collection {
     // code
 }
 ```
 
-### Type Definition Keywords
+### 类型定义关键字
 
-#### C# Type Keywords
+#### C# 类型关键字
 ```csharp
-// class - Reference type
+// class - 引用类型
 public class MyClass { }
 
-// struct - Value type
+// struct - 值类型
 public struct MyStruct { }
 
-// interface - Contract definition
+// interface - 契约定义
 public interface IMyInterface { }
 
-// enum - Enumeration
+// enum - 枚举
 public enum MyEnum { Value1, Value2 }
 
-// delegate - Function pointer
+// delegate - 函数指针
 public delegate void MyDelegate(int value);
 ```
 
-#### Rust Type Keywords
+#### Rust 类型关键字
 ```rust
-// struct - Data structure (like C# class/struct combined)
+// struct - 数据结构（类似C# class/struct的结合）
 struct MyStruct {
     field: i32,
 }
 
-// enum - Algebraic data type (much more powerful than C# enum)
+// enum - 代数数据类型（比C# enum强大得多）
 enum MyEnum {
     Variant1,
-    Variant2(i32),              // Can hold data
-    Variant3 { x: i32, y: i32 }, // Struct-like variant
+    Variant2(i32),              // 可以持有数据
+    Variant3 { x: i32, y: i32 }, // 类似结构的变体
 }
 
-// trait - Interface definition (like C# interface but more powerful)
+// trait - 接口定义（类似C# interface但更强大）
 trait MyTrait {
     fn method(&self);
     
-    // Default implementation (like C# 8+ default interface methods)
+    // 默认实现（类似C# 8+默认接口方法）
     fn default_method(&self) {
         println!("Default implementation");
     }
 }
 
-// type - Type alias (like C# using alias)
+// type - 类型别名（类似C# using别名）
 type UserId = u32;
 type Result<T> = std::result::Result<T, MyError>;
 
-// impl - Implementation block (no C# equivalent - methods defined separately)
+// impl - 实现块（无C#等价物 - 方法单独定义）
 impl MyStruct {
     fn new() -> MyStruct {
         MyStruct { field: 0 }
@@ -195,93 +194,93 @@ impl MyTrait for MyStruct {
 }
 ```
 
-### Function Definition Keywords
+### 函数定义关键字
 
-#### C# Function Keywords
+#### C# 函数关键字
 ```csharp
-// static - Class method
+// static - 类方法
 public static void StaticMethod() { }
 
-// virtual - Can be overridden
+// virtual - 可以被覆盖
 public virtual void VirtualMethod() { }
 
-// override - Override base method
+// override - 覆盖基类方法
 public override void VirtualMethod() { }
 
-// abstract - Must be implemented
+// abstract - 必须实现
 public abstract void AbstractMethod();
 
-// async - Asynchronous method
+// async - 异步方法
 public async Task<int> AsyncMethod() { return await SomeTask(); }
 ```
 
-#### Rust Function Keywords
+#### Rust 函数关键字
 ```rust
-// fn - Function definition (like C# method but standalone)
+// fn - 函数定义（类似C#方法但是独立的）
 fn regular_function() {
     println!("Hello");
 }
 
-// const fn - Compile-time function (like C# const but for functions)
+// const fn - 编译时函数（类似C# const但用于函数）
 const fn compile_time_function() -> i32 {
-    42 // Can be evaluated at compile time
+    42 // 可以在编译时求值
 }
 
-// async fn - Asynchronous function (like C# async)
+// async fn - 异步函数（类似C# async）
 async fn async_function() -> i32 {
     some_async_operation().await
 }
 
-// unsafe fn - Function that may violate memory safety
+// unsafe fn - 可能违反内存安全的函数
 unsafe fn unsafe_function() {
-    // Can perform unsafe operations
+    // 可以执行不安全操作
 }
 
-// extern fn - Foreign function interface
+// extern fn - 外部函数接口
 extern "C" fn c_compatible_function() {
-    // Can be called from C
+    // 可以从C调用
 }
 ```
 
-### Variable Declaration Keywords
+### 变量声明关键字
 
-#### C# Variable Keywords
+#### C# 变量关键字
 ```csharp
-// var - Type inference
-var name = "John"; // Inferred as string
+// var - 类型推断
+var name = "John"; // 推断为string
 
-// const - Compile-time constant
+// const - 编译时常量
 const int MaxSize = 100;
 
-// readonly - Runtime constant
+// readonly - 运行时常量
 readonly DateTime createdAt = DateTime.Now;
 
-// static - Class-level variable
+// static - 类级变量
 static int instanceCount = 0;
 ```
 
-#### Rust Variable Keywords
+#### Rust 变量关键字
 ```rust
-// let - Variable binding (like C# var)
-let name = "John"; // Immutable by default
+// let - 变量绑定（类似C# var）
+let name = "John"; // 默认不可变
 
-// let mut - Mutable variable binding
-let mut count = 0; // Can be changed
+// let mut - 可变变量绑定
+let mut count = 0; // 可以更改
 count += 1;
 
-// const - Compile-time constant (like C# const)
+// const - 编译时常量（类似C# const）
 const MAX_SIZE: usize = 100;
 
-// static - Global variable (like C# static)
+// static - 全局变量（类似C# static）
 static INSTANCE_COUNT: std::sync::atomic::AtomicUsize = 
     std::sync::atomic::AtomicUsize::new(0);
 ```
 
-### Pattern Matching Keywords
+### 模式匹配关键字
 
-#### C# Pattern Matching (C# 8+)
+#### C# 模式匹配（C# 8+）
 ```csharp
-// switch expression
+// switch表达式
 string result = value switch
 {
     1 => "One",
@@ -289,120 +288,120 @@ string result = value switch
     _ => "Other"
 };
 
-// is pattern
+// is模式
 if (obj is string str)
 {
     Console.WriteLine(str.Length);
 }
 ```
 
-#### Rust Pattern Matching Keywords
+#### Rust 模式匹配关键字
 ```rust
-// match - Pattern matching (like C# switch but much more powerful)
+// match - 模式匹配（类似C# switch但强大得多）
 let result = match value {
     1 => "One",
     2 => "Two",
-    3..=10 => "Between 3 and 10", // Range patterns
-    _ => "Other", // Wildcard (like C# _)
+    3..=10 => "Between 3 and 10", // 范围模式
+    _ => "Other", // 通配符（类似C# _）
 };
 
-// if let - Conditional pattern matching
+// if let - 条件模式匹配
 if let Some(value) = optional {
     println!("Got value: {}", value);
 }
 
-// while let - Loop with pattern matching
+// while let - 带模式匹配的循环
 while let Some(item) = iterator.next() {
     println!("Item: {}", item);
 }
 
-// let with patterns - Destructuring
-let (x, y) = point; // Destructure tuple
+// let带模式 - 解构
+let (x, y) = point; // 解构元组
 let Some(value) = optional else {
-    return; // Early return if pattern doesn't match
+    return; // 模式不匹配时提前返回
 };
 ```
 
-### Memory Safety Keywords
+### 内存安全关键字
 
-#### C# Memory Keywords
+#### C# 内存关键字
 ```csharp
-// unsafe - Disable safety checks
+// unsafe - 禁用安全检查
 unsafe
 {
     int* ptr = &variable;
     *ptr = 42;
 }
 
-// fixed - Pin managed memory
+// fixed - 固定托管内存
 unsafe
 {
     fixed (byte* ptr = array)
     {
-        // Use ptr
+        // 使用ptr
     }
 }
 ```
 
-#### Rust Safety Keywords
+#### Rust 安全关键字
 ```rust
-// unsafe - Disable borrow checker (use sparingly!)
+// unsafe - 禁用借用检查器（谨慎使用！）
 unsafe {
     let ptr = &variable as *const i32;
-    let value = *ptr; // Dereference raw pointer
+    let value = *ptr; // 解引用原始指针
 }
 
-// Raw pointer types (no C# equivalent - usually not needed)
-let ptr: *const i32 = &42;  // Immutable raw pointer
-let ptr: *mut i32 = &mut 42; // Mutable raw pointer
+// 原始指针类型（无C#等价物 - 通常不需要）
+let ptr: *const i32 = &42;  // 不可变原始指针
+let ptr: *mut i32 = &mut 42; // 可变原始指针
 ```
 
-### Common Rust Keywords Not in C#
+### C#中没有的常见Rust关键字
 
 ```rust
-// where - Generic constraints (more flexible than C# where)
+// where - 泛型约束（比C# where更灵活）
 fn generic_function<T>() 
 where 
     T: Clone + Send + Sync,
 {
-    // T must implement Clone, Send, and Sync traits
+    // T必须实现Clone、Send和Sync trait
 }
 
-// dyn - Dynamic trait objects (like C# object but type-safe)
+// dyn - 动态trait对象（类似C# object但类型安全）
 let drawable: Box<dyn Draw> = Box::new(Circle::new());
 
-// Self - Refer to the implementing type (like C# this but for types)
+// Self - 引用实现类型（类似C# this但用于类型）
 impl MyStruct {
     fn new() -> Self { // Self = MyStruct
         Self { field: 0 }
     }
 }
 
-// self - Method receiver
+// self - 方法接收器
 impl MyStruct {
-    fn method(&self) { }        // Immutable borrow
-    fn method_mut(&mut self) { } // Mutable borrow  
-    fn consume(self) { }        // Take ownership
+    fn method(&self) { }        // 不可变借用
+    fn method_mut(&mut self) { } // 可变借用  
+    fn consume(self) { }        // 获取所有权
 }
 
-// crate - Refer to current crate root
-use crate::models::User; // Absolute path from crate root
+// crate - 引用当前crate根目录
+use crate::models::User; // 从crate根的绝对路径
 
-// super - Refer to parent module
-use super::utils; // Import from parent module
+// super - 引用父模块
+use super::utils; // 从父模块导入
 ```
 
-### Keywords Summary for C# Developers
+### C#开发者关键字汇总
 
-| Purpose | C# | Rust | Key Difference |
+| 用途 | C# | Rust | 关键差异 |
 |---------|----|----|----------------|
-| Visibility | `public`, `private`, `internal` | `pub`, default private | More granular with `pub(crate)` |
-| Variables | `var`, `readonly`, `const` | `let`, `let mut`, `const` | Immutable by default |
-| Functions | `method()` | `fn` | Standalone functions |
-| Types | `class`, `struct`, `interface` | `struct`, `enum`, `trait` | Enums are algebraic types |
-| Generics | `<T> where T : IFoo` | `<T> where T: Foo` | More flexible constraints |
-| References | `ref`, `out`, `in` | `&`, `&mut` | Compile-time borrow checking |
-| Patterns | `switch`, `is` | `match`, `if let` | Exhaustive matching required |
+| 可见性 | `public`, `private`, `internal` | `pub`，默认私有 | `pub(crate)`更细粒度 |
+| 变量 | `var`, `readonly`, `const` | `let`, `let mut`, `const` | 默认不可变 |
+| 函数 | `method()` | `fn` | 独立函数 |
+| 类型 | `class`, `struct`, `interface` | `struct`, `enum`, `trait` | enum是代数类型 |
+| 泛型 | `<T> where T : IFoo` | `<T> where T: Foo` | 更灵活的约束 |
+| 引用 | `ref`, `out`, `in` | `&`, `&mut` | 编译时借用检查 |
+| 模式 | `switch`, `is` | `match`, `if let` | 需要穷举匹配 |
 
 ***
 

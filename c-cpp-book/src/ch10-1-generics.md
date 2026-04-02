@@ -1,10 +1,9 @@
-# Rust generics
+# Rust 泛型
 
-> **What you'll learn:** Generic type parameters, monomorphization (zero-cost generics), trait bounds, and how Rust generics compare to C++ templates — with better error messages and no SFINAE.
+> **你将学到什么：** 泛型类型参数、单态化（零成本泛型）、trait bounds，以及 Rust 泛型如何与 C++ 模板比较——具有更好的错误消息和没有 SFINAE。
 
-- Generics allow the same algorithm or data structure to be reused across data types
-    - The generic parameter appears as an identifer within ```<>```, e.g.: ```<T>```. The parameter have any legal identifier name, but is typically kept short for brevity
-    - The compiler performs monomorphization at compile time, i.e., it generates a new type for every variation of ```T``` that is encountered
+- 泛型允许相同的算法或数据结构跨数据类型重用
+    - 泛型参数作为标识符出现在 `<>` 中，例如：`<T>`。参数可以是任何合法标识符名称，但通常保持简短以简洁</    - 编译器在编译时执行单态化，即为遇到的每个 `T` 变体生成一个新类型
 ```rust
 // Returns a tuple of type <T> composed of left and right of type <T>
 fn pick<T>(x: u32, left: T, right: T) -> (T, T) {
@@ -21,8 +20,8 @@ fn main() {
 }
 ```
 
-# Rust generics
-- Generics can also be applied to data types and associated methods. It is possible to specialize the implementation for a specific ```<T>``` (example: ```f32``` vs. ```u32```)
+# Rust 泛型
+- 泛型也可以应用于数据类型和关联方法。可以为特定的 `<T>` 专门化实现（例如：`f32` vs. `u32`）
 ```rust
 #[derive(Debug)] // We will discuss this later
 struct Point<T> {
@@ -54,10 +53,10 @@ fn main() {
 }
 ```
 
-# Exercise: Generics
+# 练习：泛型
 
-🟢 **Starter**
-- Modify the ```Point``` type to use two different types (```T``` and ```U```) for x and y
+🟢 **入门级**
+- 修改 `Point` 类型，为 x 和 y 使用两种不同的类型（`T` 和 `U`）
 
 <details><summary>Solution (click to expand)</summary>
 
@@ -90,9 +89,9 @@ fn main() {
 
 </details>
 
-### Combining Rust traits and generics
-- Traits can be used to place restrictions on generic types (constraints)
-- The constraint can be specified using a ```:``` after the generic type parameter, or using ```where```. The following defines a generic function ```get_area``` that takes any type ```T``` as long as it implements the ```ComputeArea``` ```trait```
+### 结合 Rust traits 和泛型
+- Traits 可用于对泛型类型施加限制（约束）
+- 约束可以使用 `: ` 在泛型类型参数后指定，或使用 `where`。以下定义了一个泛型函数 `get_area`，它接受任何实现了 `ComputeArea` trait 的类型 `T`
 ```rust
     trait ComputeArea {
         fn area(&self) -> u64;

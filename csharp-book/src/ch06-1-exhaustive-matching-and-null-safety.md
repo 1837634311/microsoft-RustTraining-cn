@@ -1,11 +1,11 @@
-## Exhaustive Pattern Matching: Compiler Guarantees vs Runtime Errors
+## 穷举模式匹配：编译器保证 vs 运行时错误
 
-> **What you'll learn:** Why C# `switch` expressions silently miss cases while Rust's `match` catches them at compile time,
-> `Option<T>` vs `Nullable<T>` for null safety, and custom error types with `Result<T, E>`.
+> **学习内容：** 为什么C#的`switch`表达式会静默遗漏情况而Rust的`match`在编译时捕获它们、
+> 用于空安全的`Option<T>` vs `Nullable<T>`，以及带有`Result<T, E>`的自定义错误类型。
 >
-> **Difficulty:** 🟡 Intermediate
+> **难度：** 🟡 中级
 
-### C# Switch Expressions - Still Incomplete
+### C# Switch表达式——仍然不完整
 ```csharp
 // C# switch expressions look exhaustive but aren't guaranteed
 public enum HttpStatus { Ok, NotFound, ServerError, Unauthorized }
@@ -45,7 +45,7 @@ public enum HttpStatus
 }
 ```
 
-### Rust Pattern Matching - True Exhaustiveness
+### Rust 模式匹配——真正的穷举性
 ```rust
 #[derive(Debug)]
 enum HttpStatus {
@@ -128,9 +128,9 @@ graph TD
 
 ***
 
-## Null Safety: `Nullable<T>` vs `Option<T>`
+## 空安全：`Nullable<T>` vs `Option<T>`
 
-### C# Null Handling Evolution
+### C# 空处理演进
 ```csharp
 // C# - Traditional null handling (error-prone)
 public class User
@@ -163,7 +163,7 @@ if (maybeNumber.HasValue)
 }
 ```
 
-### Rust `Option<T>` System
+### Rust `Option<T>`系统
 ```rust
 // Rust - Explicit null handling with Option<T>
 #[derive(Debug)]
@@ -250,7 +250,7 @@ fn describe_point(point: Point) -> String {
 }
 ```
 
-### Option and Result Types
+### Option和Result类型
 ```csharp
 // C# nullable reference types (C# 8+)
 public class PersonService
@@ -363,7 +363,7 @@ fn main() {
 }
 ```
 
-### Custom Error Types
+### 自定义错误类型
 ```rust
 // Define custom error enum
 #[derive(Debug)]
@@ -421,12 +421,12 @@ fn demo_error_handling() {
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Option Combinators</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：Option组合器</strong>（点击展开）</summary>
 
-Rewrite this deeply nested C# null-checking code using Rust `Option` combinators (`and_then`, `map`, `unwrap_or`):
+使用Rust的`Option`组合器（`and_then`、`map`、`unwrap_or`）重写这个深层嵌套的C#空检查代码：
 
 ```csharp
 string GetCityName(User? user)
@@ -473,7 +473,7 @@ fn main() {
 }
 ```
 
-**Key insight**: `and_then` is Rust's `?.` operator for `Option`. Each step returns `Option`, and the chain short-circuits on `None` — exactly like C#'s null-conditional operator `?.`, but explicit and type-safe.
+**关键洞察**：`and_then`是Rust用于`Option`的`?.`操作符。每一步都返回`Option`，链在`None`时短路——就像C#的空条件操作符`?.`一样，但它是显式的且类型安全。
 
 </details>
 </details>

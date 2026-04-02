@@ -1,9 +1,8 @@
-## MMIO and Volatile Register Access
+## MMIO 和易失性寄存器访问
 
-> **What you'll learn:** Type-safe hardware register access in embedded Rust — volatile MMIO patterns, register abstraction crates, and how Rust's type system can encode register permissions that C's `volatile` keyword cannot.
+> **你将学到什么：** 嵌入式 Rust 中类型安全的硬件寄存器访问——易失性 MMIO 模式、寄存器抽象 crate，以及 Rust 的类型系统如何编码 C 的 `volatile` 关键字无法做到的寄存器权限。
 
-In C firmware, you access hardware registers via `volatile` pointers to specific
-memory addresses. Rust has equivalent mechanisms — but with type safety.
+在 C 固件中，你通过指向特定内存地址的 `volatile` 指针访问硬件寄存器。Rust 有等价的机制——但具有类型安全性。
 
 ### C volatile vs Rust volatile
 
@@ -33,11 +32,9 @@ unsafe fn toggle_led() {
 }
 ```
 
-### svd2rust — Type-Safe Register Access (the Rust way)
+### svd2rust — 类型安全寄存器访问（Rust 方式）
 
-In practice, you **never** write raw volatile pointers. Instead, `svd2rust` generates
-a **Peripheral Access Crate (PAC)** from the chip's SVD file (the same XML file used by
-your IDE's debug view):
+实际上，你**永远不会**写原始的 volatile 指针。相反，`svd2rust` 从芯片的 SVD 文件（与你的 IDE 调试视图使用的相同 XML 文件）生成一个**外设访问 Crate（PAC）**：
 
 ```rust
 // Generated PAC code (you don't write this — svd2rust does)

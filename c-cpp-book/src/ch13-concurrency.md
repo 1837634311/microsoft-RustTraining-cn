@@ -1,12 +1,12 @@
-# Rust concurrency
+# Rust 并发
 
-> **What you'll learn:** Rust's concurrency model — threads, `Send`/`Sync` marker traits, `Mutex<T>`, `Arc<T>`, channels, and how the compiler prevents data races at compile time. No runtime overhead for thread safety you don't use.
+> **你将学到什么：** Rust 的并发模型——线程、`Send`/`Sync` 标记 traits、`Mutex<T>`、`Arc<T>`、通道，以及编译器如何在编译时防止数据竞争。不使用线程安全就不会有运行时开销。
 
-- Rust has built-in support for concurrency, similar to `std::thread` in C++
-    - Key difference: Rust **prevents data races at compile time** through `Send` and `Sync` marker traits
-    - In C++, sharing a `std::vector` across threads without a mutex is UB but compiles fine. In Rust, it won't compile.
-    - `Mutex<T>` in Rust wraps the **data**, not just the access — you literally cannot read the data without locking
-- The `thread::spawn()` can be used to create a separate thread that executes the closure `||` in parallel
+- Rust 有内置的并发支持，类似于 C++ 中的 `std::thread`
+    - 关键差异：Rust 通过 `Send` 和 `Sync` 标记 traits 在**编译时**防止数据竞争
+    - 在 C++ 中，在没有互斥锁的情况下在线程间共享 `std::vector` 是 UB，但编译得很好。在 Rust 中，它不会编译。
+    - Rust 中的 `Mutex<T>` 包装**数据**，而不仅仅是访问——你实际上不能不锁定就读取数据
+- `thread::spawn()` 可用于创建一个执行闭包 `||` 的独立线程
 ```rust
 use std::thread;
 use std::time::Duration;
@@ -27,9 +27,9 @@ fn main() {
 }
 ```
 
-# Rust concurrency
-- ```thread::scope()``` can be used in cases where it is necessary to borrow from the environment. This works because ```thread::scope``` waits until the internal thread returns
-- Try executing this exercise without ```thread::scope``` to see the issue
+# Rust 并发
+- `thread::scope()` 可用于需要从环境借用的情况。这有效，因为 `thread::scope` 等待内部线程返回
+- 尝试在没有 `thread::scope` 的情况下执行这个练习以查看问题
 ```rust
 use std::thread;
 fn main() {
@@ -60,10 +60,10 @@ fn main() {
 }
 ```
 
-# Rust concurrency
-- ```Arc<T>``` can be used to share *read-only* references between multiple threads
-    - ```Arc``` stands for Atomic Reference Counted. The reference isn't released until the reference count reaches 0
-    - ```Arc::clone()``` simply increases the reference count without cloning the data
+# Rust 并发
+- `Arc<T>` 可用于在多个线程间共享*只读*引用
+    - `Arc` 代表 Atomic Reference Counted（原子引用计数）。引用直到引用计数达到 0 才会被释放
+    - `Arc::clone()` 只是增加引用计数而不克隆数据
 ```rust
 use std::sync::Arc;
 use std::thread;
@@ -80,10 +80,10 @@ fn main() {
 }
 ```
 
-# Rust concurrency
-- ```Arc<T>``` can be combined with ```Mutex<T>``` to provide mutable references.
-    - ```Mutex``` guards the protected data and ensures that only the thread holding the lock has access.
-    - The `MutexGuard` is automatically released when it goes out of scope (RAII). Note: `std::mem::forget` can still leak a guard — so "impossible to forget to unlock" is more accurate than "impossible to leak."
+# Rust 并发
+- `Arc<T>` 可与 `Mutex<T>` 组合以提供可变引用。
+    - `Mutex` 保护被保护的数据，并确保只有持有锁的线程才能访问。
+    - `MutexGuard` 在超出作用域时自动释放（RAII）。注意：`std::mem::forget` 仍然可能泄漏守卫——所以"不可能忘记解锁"比"不可能泄漏"更准确。
 ```rust
 use std::sync::{Arc, Mutex};
 use std::thread;

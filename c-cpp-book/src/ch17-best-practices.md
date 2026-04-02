@@ -1,15 +1,15 @@
-# Rust Best Practices Summary
+# Rust 最佳实践总结
 
-> **What you'll learn:** Practical guidelines for writing idiomatic Rust — code organization, naming conventions, error handling patterns, and documentation. A quick-reference chapter you'll return to often.
+> **你将学到什么：** 编写惯用 Rust 的实用指南——代码组织、命名约定、错误处理模式和文档。这是一个你会经常返回的快速参考章节。
 
-## Code Organization
-- **Prefer small functions**: Easy to test and reason about
-- **Use descriptive names**: `calculate_total_price()` vs `calc()`
-- **Group related functionality**: Use modules and separate files
-- **Write documentation**: Use `///` for public APIs
+## 代码组织
+- **优先使用小函数**：易于测试和推理
+- **使用描述性名称**：`calculate_total_price()` vs `calc()`
+- **分组相关功能**：使用模块和单独文件
+- **编写文档**：为公共 API 使用 `///`
 
-## Error Handling
-- **Avoid `unwrap()` unless infallible**: Only use when you're 100% certain it won't panic
+## 错误处理
+- **除非确信不会失败，否则避免 `unwrap()`**：只有当你 100% 确定它不会 panic 时才使用
 ```rust
 // Bad: Can panic
 let value = some_option.unwrap();
@@ -26,13 +26,13 @@ let value = some_result.unwrap_or_else(|err| {
     default_value
 });
 ```
-- **Use `expect()` with descriptive messages**: When unwrap is justified, explain why
+- **使用带有描述性消息的 `expect()`**：当 unwrap 是合理的时，解释原因
 ```rust
 let config = std::env::var("CONFIG_PATH")
     .expect("CONFIG_PATH environment variable must be set");
 ```
-- **Return `Result<T, E>` for fallible operations**: Let callers decide how to handle errors
-- **Use `thiserror` for custom error types**: More ergonomic than manual implementations
+- **对可能失败的操作返回 `Result<T, E>`**：让调用者决定如何处理错误
+- **使用 `thiserror` 定义自定义错误类型**：比手动实现更符合人体工程学
 ```rust
 use thiserror::Error;
 
@@ -48,16 +48,11 @@ pub enum MyError {
     OutOfRange { value: i32 },
 }
 ```
-- **Chain errors with `?` operator**: Propagate errors up the call stack
-- **Prefer `thiserror` over `anyhow`**: Our team convention is to define explicit error
-  enums with `#[derive(thiserror::Error)]` so callers can match on specific variants.
-  `anyhow::Error` is convenient for quick prototyping but erases the error type, making
-  it harder for callers to handle specific failures. Use `thiserror` for library and
-  production code; reserve `anyhow` for throwaway scripts or top-level binaries where
-  you only need to print the error.
-- **When `unwrap()` is acceptable**:
-  - **Unit tests**: `assert_eq!(result.unwrap(), expected)`
-  - **Prototyping**: Quick and dirty code that you'll replace
+- **用 `?` 操作符链接错误**：将错误向上传播到调用栈
+- **优先使用 `thiserror` 而不是 `anyhow`**：我们的团队惯例是用 `#[derive(thiserror::Error)]` 定义显式错误枚举，以便调用者可以匹配特定变体。`anyhow::Error` 对于快速原型制作很方便，但会擦除错误类型，使调用者更难处理特定失败。为库和生产代码使用 `thiserror`；为一次性脚本或只需要打印错误的最顶层二进制文件保留 `anyhow`。
+- **何时 `unwrap()` 是可接受的**：
+  - **单元测试**：`assert_eq!(result.unwrap(), expected)`
+  - **原型制作**：你会替换的快速而粗糙的代码
   - **Infallible operations**: When you can prove it won't fail
 ```rust
 let numbers = vec![1, 2, 3];

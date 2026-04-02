@@ -1,26 +1,22 @@
-# `no_std` — Rust Without the Standard Library
+# `no_std` — 没有标准库的 Rust
 
-> **What you'll learn:** How to write Rust for bare-metal and embedded targets using `#![no_std]` — the `core` and `alloc` crate split, panic handlers, and how this compares to embedded C without `libc`.
+> **你将学到什么：** 如何使用 `#![no_std]` 为裸机和嵌入式目标编写 Rust——`core` 和 `alloc` crate 分割、panic 处理程序，以及这与没有 `libc` 的嵌入式 C 的比较。
 
-If you come from embedded C, you're already used to working without `libc` or with a minimal
-runtime.  Rust has a first-class equivalent: the **`#![no_std]`** attribute.
+如果你来自嵌入式 C，你已经习惯于在没有 `libc` 或使用最小运行时的情况下工作。Rust 有一个一等价的：**`#![no_std]`** 属性。
 
-## What is `no_std`?
+## 什么是 `no_std`？
 
-When you add `#![no_std]` to the crate root, the compiler removes the
-implicit `extern crate std;` and links only against **`core`** (and optionally **`alloc`**).
+当你把 `#![no_std]` 添加到 crate 根目录时，编译器会移除隐式的 `extern crate std;`，只链接 **`core`**（和可选的 **`alloc`**）。
 
-| Layer | What it provides | Requires OS / heap? |
+| 层 | 它提供什么 | 需要 OS / 堆？ |
 |-------|-----------------|---------------------|
-| `core` | Primitive types, `Option`, `Result`, `Iterator`, math, `slice`, `str`, atomics, `fmt` | **No** — runs on bare metal |
-| `alloc` | `Vec`, `String`, `Box`, `Rc`, `Arc`, `BTreeMap` | Needs a global allocator, but **no OS** |
-| `std` | `HashMap`, `fs`, `net`, `thread`, `io`, `env`, `process` | **Yes** — needs an OS |
+| `core` | 原始类型、`Option`、`Result`、`Iterator`、数学、`slice`、`str`、原子操作、`fmt` | **否**——在裸机上运行 |
+| `alloc` | `Vec`、`String`、`Box`、`Rc`、`Arc`、`BTreeMap` | 需要全局分配器，但**不需要 OS** |
+| `std` | `HashMap`、`fs`、`net`、`thread`、`io`、`env`、`process` | **是**——需要 OS |
 
-> **Rule of thumb for embedded devs:** if your C project links against `-lc` and
-> uses `malloc`, you can probably use `core` + `alloc`.  If it runs on bare metal
-> without `malloc`, stick with `core` only.
+> **嵌入式开发者的经验法则：** 如果你的 C 项目链接到 `-lc` 并使用 `malloc`，你可能可以使用 `core` + `alloc`。如果它在没有 `malloc` 的裸机上运行，坚持只使用 `core`。
 
-## Declaring `no_std`
+## 声明 `no_std`
 
 ```rust
 // src/lib.rs  (or src/main.rs for a binary with #![no_main])
@@ -53,11 +49,11 @@ fn panic(_info: &PanicInfo) -> ! {
 // Entry point depends on your HAL / linker script
 ```
 
-## What you lose (and alternatives)
+## 你失去什么（和替代方案）
 
-| `std` feature | `no_std` alternative |
+| `std` 功能 | `no_std` 替代方案 |
 |---------------|---------------------|
-| `println!` | `core::write!` to a UART / `defmt` |
+| `println!` | `core::write!` 到 UART / `defmt` |
 | `HashMap` | `heapless::FnvIndexMap` (fixed capacity) or `BTreeMap` (with `alloc`) |
 | `Vec` | `heapless::Vec` (stack-allocated, fixed capacity) |
 | `String` | `heapless::String` or `&str` |

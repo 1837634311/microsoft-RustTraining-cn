@@ -1,13 +1,13 @@
-## Lifetimes: Telling the Compiler How Long References Live
+## 生命周期：告诉编译器引用存活多长时间
 
-> **What you'll learn:** Why lifetimes exist (no GC means the compiler needs proof), lifetime annotation syntax,
-> elision rules, struct lifetimes, the `'static` lifetime, and common borrow checker errors with fixes.
+> **学习内容：** 为什么存在生命周期（没有GC意味着编译器需要证明）、生命周期标注语法、
+> 省略规则、结构体生命周期、`'static`生命周期，以及常见的借用检查器错误及修复。
 >
-> **Difficulty:** 🔴 Advanced
+> **难度：** 🔴 高级
 
-C# developers never think about reference lifetimes — the garbage collector handles reachability. In Rust, the compiler needs *proof* that every reference is valid for as long as it's used. Lifetimes are that proof.
+C#开发者从不考虑引用生命周期——垃圾回收器处理可达性。在Rust中，编译器需要*证明*每个引用在其使用期间都是有效的。生命周期就是那个证明。
 
-### Why Lifetimes Exist
+### 为什么存在生命周期
 ```rust
 // This won't compile — the compiler can't prove the returned reference is valid
 fn longest(a: &str, b: &str) -> &str {
@@ -17,7 +17,7 @@ fn longest(a: &str, b: &str) -> &str {
 // whether the return value borrows from `a` or `b`
 ```
 
-### Lifetime Annotations
+### 生命周期标注
 ```rust
 // Lifetime 'a says: "the return value lives at least as long as BOTH inputs"
 fn longest<'a>(a: &'a str, b: &'a str) -> &'a str {
@@ -36,7 +36,7 @@ fn main() {
 }
 ```
 
-### C# Comparison
+### C# 对比
 ```csharp
 // C# — the GC keeps objects alive as long as any reference exists
 string Longest(string a, string b) => a.Length > b.Length ? a : b;
@@ -45,7 +45,7 @@ string Longest(string a, string b) => a.Length > b.Length ? a : b;
 // But: GC pauses, unpredictable memory usage, no compile-time proof
 ```
 
-### Lifetime Elision Rules
+### 生命周期省略规则
 
 Most of the time you **don't need to write lifetime annotations**. The compiler applies three rules automatically:
 
@@ -64,7 +64,7 @@ fn first_word<'a>(s: &'a str) -> &'a str { /* ... */ } // explicit
 fn longest<'a>(a: &'a str, b: &'a str) -> &'a str { /* ... */ }
 ```
 
-### Struct Lifetimes
+### 结构体生命周期
 ```rust
 // A struct that borrows data (instead of owning it)
 struct Excerpt<'a> {
@@ -100,7 +100,7 @@ class Excerpt
 // What if the string is mutated elsewhere? Runtime surprise.
 ```
 
-### The `'static` Lifetime
+### `'static`生命周期
 ```rust
 // 'static means "lives for the entire program duration"
 let s: &'static str = "I'm a string literal"; // stored in binary, always valid
@@ -119,7 +119,7 @@ let owned = String::from("hello");
 // owned is NOT 'static, but it can be moved into a thread (ownership transfer)
 ```
 
-### Common Borrow Checker Errors and Fixes
+### 常见借用检查器错误及修复
 
 | Error | Cause | Fix |
 |-------|-------|-----|
@@ -129,7 +129,7 @@ let owned = String::from("hello");
 | `cannot move out of borrowed content` | Trying to take ownership of borrowed data | Use `.clone()`, or restructure to avoid the move |
 | `lifetime may not live long enough` | Struct borrow outlives source | Ensure the source data's scope encompasses the struct's usage |
 
-### Visualizing Lifetime Scopes
+### 可视化生命周期作用域
 
 ```mermaid
 graph TD
@@ -148,7 +148,7 @@ graph TD
     style H fill:#ffcdd2,color:#000
 ```
 
-### Multiple Lifetime Parameters
+### 多个生命周期参数
 
 Sometimes references come from different sources with different lifetimes:
 
@@ -176,7 +176,7 @@ string FirstWithContext(string data, string context) => data.Split(',')[0];
 // Fine for GC'd languages, but Rust can prove safety without a GC
 ```
 
-### Real-World Lifetime Patterns
+### 实际生命周期模式
 
 **Pattern 1: Iterator returning references**
 ```rust
@@ -219,7 +219,7 @@ fn make_printer<'a>(text: &'a str) -> Box<dyn std::fmt::Display + 'a> {
 }
 ```
 
-### When to Reach for `'static`
+### 何时使用`'static`
 
 | Scenario | Use `'static`? | Alternative |
 |----------|:-----------:|-------------|
@@ -230,9 +230,9 @@ fn make_printer<'a>(text: &'a str) -> Box<dyn std::fmt::Display + 'a> {
 | Temporary borrowing | ❌ Never — over-constraining | Use the actual lifetime |
 
 <details>
-<summary><strong>🏋️ Exercise: Lifetime Annotations</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：生命周期标注</strong>（点击展开）</summary>
 
-**Challenge**: Add the correct lifetime annotations to make this compile:
+**挑战**：添加正确的生命周期标注使这段代码编译通过：
 
 ```rust
 struct Config {
@@ -281,7 +281,7 @@ fn make_info<'a>(config: &'a Config) -> ConnectionInfo<'a> {
 }
 ```
 
-**Key takeaway**: Lifetime elision often saves you from writing annotations on functions, but structs that borrow data always need explicit `<'a>`.
+**关键要点**：生命周期省略通常让你不必在函数上写标注，但借用数据的结构体总是需要显式的`<'a>`。
 
 </details>
 </details>

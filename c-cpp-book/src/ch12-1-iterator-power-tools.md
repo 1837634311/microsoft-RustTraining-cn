@@ -1,13 +1,10 @@
-## Iterator Power Tools Reference
+## 迭代器强大工具参考
 
-> **What you'll learn:** Advanced iterator combinators beyond `filter`/`map`/`collect` — `enumerate`, `zip`, `chain`, `flat_map`, `scan`, `windows`, and `chunks`. Essential for replacing C-style indexed `for` loops with safe, expressive Rust iterators.
+> **你将学到什么：** 除 `filter`/`map`/`collect` 之外的高级迭代器组合器——`enumerate`、`zip`、`chain`、`flat_map`、`scan`、`windows` 和 `chunks`。对于用安全、表达力强的 Rust 迭代器替代 C 风格的索引 `for` 循环至关重要。
 
-The basic `filter`/`map`/`collect` chain covers many cases, but Rust's iterator library
-is far richer. This section covers the tools you'll reach for daily — especially when
-translating C loops that manually track indices, accumulate results, or process
-data in fixed-size chunks.
+基本的 `filter`/`map`/`collect` 链涵盖许多情况，但 Rust 的迭代器库要丰富得多。本节介绍你每天都会使用的工具——特别是当转换手动跟踪索引、累积结果或处理固定大小块数据的 C 循环时。
 
-### Quick Reference Table
+### 快速参考表
 
 | Method | C Equivalent | What it does | Returns |
 |--------|-------------|-------------|---------|
@@ -29,7 +26,7 @@ data in fixed-size chunks.
 | `any(f)` / `all(f)` | `bool found = false; for (...) ...` | Short-circuit boolean search | `bool` |
 | `position(f)` | `for (i=0; ...) if (pred) return i;` | Index of first match | `Option<usize>` |
 
-### `enumerate` — Index + Value (replaces C index loops)
+### `enumerate` — 索引 + 值（替代 C 索引循环）
 
 ```rust
 fn main() {
@@ -46,7 +43,7 @@ fn main() {
 }
 ```
 
-### `zip` — Parallel Iteration (replaces parallel array loops)
+### `zip` — 并行迭代（替代并行数组循环）
 
 ```rust
 fn main() {

@@ -1,8 +1,8 @@
-# Case Study 3: Framework communication → Lifetime borrowing
+# 案例研究 3：框架通信 → 生命周期借用
 
-> **What you'll learn:** How to convert C++ raw-pointer framework communication patterns to Rust's lifetime-based borrowing system, eliminating dangling pointer risks while maintaining zero-cost abstractions.
+> **你将学到什么：** 如何将 C++ 原始指针框架通信模式转换为 Rust 的基于生命周期的借用系统，在保持零成本抽象的同时消除悬空指针风险。
 
-## The C++ Pattern: Raw Pointer to Framework
+## C++ 模式：指向框架的原始指针
 ```cpp
 // C++ original: Every diagnostic module stores a raw pointer to the framework
 class DiagBase {
@@ -19,7 +19,7 @@ public:
 // If framework is destroyed while modules still reference it → UB
 ```
 
-## The Rust Solution: DiagContext with Lifetime Borrowing
+## Rust 解决方案：带生命周期借用的 DiagContext
 ```rust
 // Example: module.rs — Borrow, don't store
 
@@ -44,16 +44,16 @@ pub trait DiagModule {
 }
 ```
 
-### Key Insight
-- C++ modules **store** a pointer to the framework (danger: what if the framework is destroyed first?)
-- Rust modules **receive** a context as a function parameter — the borrow checker guarantees the framework is alive during the call
-- No raw pointers, no lifetime ambiguity, no "hope it's still alive"
+### 关键见解
+- C++ 模块**存储**指向框架的指针（危险：如果框架先被销毁怎么办？）
+- Rust 模块**接收**上下文作为函数参数——借用检查器保证在调用期间框架是活跃的
+- 没有原始指针，没有生命周期歧义，没有"希望它仍然活着"
 
 ----
 
-# Case Study 4: God object → Composable state
+# 案例研究 4：上帝对象 → 可组合状态
 
-## The C++ Pattern: Monolithic Framework Class
+## C++ 模式：单一框架类
 ```cpp
 // C++ original: The framework is god object
 class DiagFramework {

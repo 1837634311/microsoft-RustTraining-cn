@@ -1,20 +1,20 @@
-# Case Study Overview: C++ to Rust Translation
+# 案例研究概述：C++ 到 Rust 的翻译
 
-> **What you'll learn:** Lessons from a real-world translation of ~100K lines of C++ to ~90K lines of Rust across ~20 crates. Five key transformation patterns and the architectural decisions behind them.
+> **你将学到什么：** 从约 10 万行 C++ 到约 9 万行 Rust（跨越约 20 个 crate）的真实世界翻译的经验教训。五个关键转换模式和背后的架构决策。
 
-- We translated a large C++ diagnostic system (~100K lines of C++) into a Rust implementation (~20 Rust crates, ~90K lines)
-- This section shows the **actual patterns** used — not toy examples, but real production code
-- The five key transformations:
+- 我们将一个大型 C++ 诊断系统（约 10 万行 C++）翻译成 Rust 实现（约 20 个 Rust crate，约 9 万行）
+- 本节展示**实际使用的模式**——不是玩具示例，而是真实的生成代码
+- 五个关键转换：
 
-| **#** | **C++ Pattern** | **Rust Pattern** | **Impact** |
+| **#** | **C++ 模式** | **Rust 模式** | **影响** |
 |-------|----------------|-----------------|-----------|
-| 1 | Class hierarchy + `dynamic_cast` | Enum dispatch + `match` | ~400 → 0 dynamic_casts |
-| 2 | `shared_ptr` / `enable_shared_from_this` tree | Arena + index linkage | No reference cycles |
-| 3 | `Framework*` raw pointer in every module | `DiagContext<'a>` with lifetime borrowing | Compile-time validity |
-| 4 | God object  | Composable state structs | Testable, modular |
-| 5 | `vector<unique_ptr<Base>>` everywhere | Trait objects **only** where needed (~25 uses) | Static dispatch default |
+| 1 | 类层次结构 + `dynamic_cast` | 枚举分发 + `match` | ~400 → 0 dynamic_casts |
+| 2 | `shared_ptr` / `enable_shared_from_this` 树 | Arena + 索引链接 | 无引用循环 |
+| 3 | 每个模块中的 `Framework*` 原始指针 | 带生命周期借用的 `DiagContext<'a>` | 编译时有效性 |
+| 4 | 上帝对象 | 可组合状态结构体 | 可测试、模块化 |
+| 5 | 到处使用 `vector<unique_ptr<Base>>` | Trait 对象**仅**在需要时使用（约 25 处） | 默认静态分发 |
 
-### Before and After Metrics
+### 之前和之后指标
 
 | **Metric** | **C++ (Original)** | **Rust (Rewrite)** |
 |------------|---------------------|------------------------|
@@ -28,9 +28,9 @@
 
 ----
 
-# Case Study 1: Inheritance hierarchy → Enum dispatch
+# 案例研究 1：继承层次结构 → 枚举分发
 
-## The C++ Pattern: Event Class Hierarchy
+## C++ 模式：事件类层次结构
 ```cpp
 // C++ original: Every GPU event type is a class inheriting from GpuEventBase
 class GpuEventBase {

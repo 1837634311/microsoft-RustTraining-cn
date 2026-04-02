@@ -1,32 +1,32 @@
-# 8. Tokio Deep Dive 🟡
+# 8. Tokio 深度探讨 🟡
 
-> **What you'll learn:**
-> - Runtime flavors: multi-thread vs current-thread and when to use each
-> - `tokio::spawn`, the `'static` requirement, and `JoinHandle`
-> - Task cancellation semantics (cancel-on-drop)
-> - Sync primitives: Mutex, RwLock, Semaphore, and all four channel types
+> **你将学到：**
+> - 运行时风格：多线程 vs 当前线程以及何时使用各自
+> - `tokio::spawn`、`'static` 要求和 `JoinHandle`
+> - 任务取消语义（drop 时取消）
+> - 同步原语：Mutex、RwLock、Semaphore 和所有四种通道类型
 
-## Runtime Flavors: Multi-Thread vs Current-Thread
+## 运行时风格：多线程 vs 当前线程
 
-Tokio offers two runtime configurations:
+Tokio 提供两种运行时配置：
 
 ```rust
-// Multi-threaded (default with #[tokio::main])
-// Uses a work-stealing thread pool — tasks can move between threads
+// 多线程（#[tokio::main] 的默认值）
+// 使用工作窃取线程池——任务可以在线程之间移动
 #[tokio::main]
 async fn main() {
-    // N worker threads (default = number of CPU cores)
-    // Tasks are Send + 'static
+    // N 个工作线程（默认 = CPU 核心数）
+    // 任务是 Send + 'static
 }
 
-// Current-thread — everything runs on one thread
+// 当前线程——所有内容在一个线程上运行
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    // Single-threaded — tasks don't need to be Send
-    // Lighter weight, good for simple tools or WASM
+    // 单线程——任务不需要是 Send
+    // 更轻量，适合简单工具或 WASM
 }
 
-// Manual runtime construction:
+// 手动运行时构建：
 let rt = tokio::runtime::Builder::new_multi_thread()
     .worker_threads(4)
     .enable_all()
@@ -40,18 +40,18 @@ rt.block_on(async {
 
 ```mermaid
 graph TB
-    subgraph "Multi-Thread (default)"
-        MT_Q1["Thread 1<br/>Task A, Task D"]
-        MT_Q2["Thread 2<br/>Task B"]
-        MT_Q3["Thread 3<br/>Task C, Task E"]
-        STEAL["Work Stealing:<br/>idle threads steal from busy ones"]
+    subgraph "多线程（默认）"
+        MT_Q1["线程 1<br/>任务 A、任务 D"]
+        MT_Q2["线程 2<br/>任务 B"]
+        MT_Q3["线程 3<br/>任务 C、任务 E"]
+        STEAL["工作窃取：<br/>空闲线程从繁忙线程窃取任务"]
         MT_Q1 <--> STEAL
         MT_Q2 <--> STEAL
         MT_Q3 <--> STEAL
     end
 
-    subgraph "Current-Thread"
-        ST_Q["Single Thread<br/>Task A → Task B → Task C → Task D"]
+    subgraph "当前线程"
+        ST_Q["单线程<br/>任务 A → 任务 B → 任务 C → 任务 D"]
     end
 
     style MT_Q1 fill:#c8e6c9,color:#000
@@ -60,9 +60,9 @@ graph TB
     style ST_Q fill:#bbdefb,color:#000
 ```
 
-### tokio::spawn and the 'static Requirement
+### tokio::spawn 和 'static 要求
 
-`tokio::spawn` puts a future onto the runtime's task queue. Because it might run on *any* worker thread at *any* time, the future must be `Send + 'static`:
+`tokio::spawn` 将一个 future 放到运行时的任务队列上。因为它可能在*任何*工作线程上*任何*时候运行，future 必须是 `Send + 'static`：
 
 ```rust
 use tokio::task;
@@ -70,7 +70,7 @@ use tokio::task;
 async fn example() {
     let data = String::from("hello");
 
-    // ✅ Works: move ownership into the task
+    // ✅ 有效：将所有权移动到任务中
     let handle = task::spawn(async move {
         println!("{data}");
         data.len()
@@ -83,36 +83,36 @@ async fn example() {
 async fn problem() {
     let data = String::from("hello");
 
-    // ❌ FAILS: data is borrowed, not 'static
+    // ❌ 失败：data 是借用的，不是 'static
     // task::spawn(async {
-    //     println!("{data}"); // borrows `data` — not 'static
+    //     println!("{data}"); // 借用 `data` — 不是 'static
     // });
 
-    // ❌ FAILS: Rc is not Send
+    // ❌ 失败：Rc 不是 Send
     // let rc = std::rc::Rc::new(42);
     // task::spawn(async move {
-    //     println!("{rc}"); // Rc is !Send — can't cross thread boundary
+    //     println!("{rc}"); // Rc 是 !Send — 不能跨线程边界
     // });
 }
 ```
 
-**Why `'static`?** The spawned task runs independently — it might outlive the scope that created it. The compiler can't prove the references will remain valid, so it requires owned data.
+**为什么需要 `'static`？** 生成的任务独立运行——它可能比创建它的作用域活得更久。编译器无法证明引用将保持有效，所以它要求拥有数据。
 
-**Why `Send`?** The task might be resumed on a different thread than where it was suspended. All data held across `.await` points must be safe to send between threads.
+**为什么需要 `Send`？** 任务可能在与它暂停时不同的线程上恢复。在 `.await` 点之间持有的所有数据必须能安全地在线程之间发送。
 
 ```rust
-// Common pattern: clone shared data into the task
+// 常见模式：将共享数据克隆到任务中
 let shared = Arc::new(config);
 
 for i in 0..10 {
-    let shared = Arc::clone(&shared); // Clone the Arc, not the data
+    let shared = Arc::clone(&shared); // 克隆 Arc，不是数据
     tokio::spawn(async move {
         process_item(i, &shared).await;
     });
 }
 ```
 
-### JoinHandle and Task Cancellation
+### JoinHandle 和任务取消
 
 ```rust
 use tokio::task::JoinHandle;
@@ -124,13 +124,13 @@ async fn cancellation_example() {
         "completed".to_string()
     });
 
-    // Cancel the task by dropping the handle? NO — task keeps running!
-    // drop(handle); // Task continues in the background
+    // 通过 drop handle 来取消任务？不——任务继续运行！
+    // drop(handle); // 任务在后台继续
 
-    // To actually cancel, call abort():
+    // 要真正取消，调用 abort()：
     handle.abort();
 
-    // Awaiting an aborted task returns JoinError
+    // 等待被中止的任务返回 JoinError
     match handle.await {
         Ok(val) => println!("Got: {val}"),
         Err(e) if e.is_cancelled() => println!("Task was cancelled"),
@@ -139,29 +139,29 @@ async fn cancellation_example() {
 }
 ```
 
-> **Important**: Dropping a `JoinHandle` does NOT cancel the task in tokio.
-> The task becomes *detached* and keeps running. You must explicitly call
-> `.abort()` to cancel it. This is different from dropping a `Future` directly,
-> which does cancel/drop the underlying computation.
+> **重要**：在 tokio 中，Drop `JoinHandle` 不会取消任务。
+> 任务变成*分离的*并继续运行。你必须显式调用
+> `.abort()` 来取消它。这与直接 drop `Future` 不同，
+> 后者确实会取消/放弃底层计算。
 
-### Tokio Sync Primitives
+### Tokio 同步原语
 
-Tokio provides async-aware synchronization primitives. The key principle: **don't use `std::sync::Mutex` across `.await` points**.
+Tokio 提供异步感知的同步原语。关键原则：**不要在 `.await` 点之间使用 `std::sync::Mutex`**。
 
 ```rust
 use tokio::sync::{Mutex, RwLock, Semaphore, mpsc, oneshot, broadcast, watch};
 
 // --- Mutex ---
-// Async mutex: the lock() method is async and won't block the thread
+// 异步 mutex：lock() 方法是异步的，不会阻塞线程
 let data = Arc::new(Mutex::new(vec![1, 2, 3]));
 {
-    let mut guard = data.lock().await; // Non-blocking lock
+    let mut guard = data.lock().await; // 非阻塞锁
     guard.push(4);
-} // Guard dropped here — lock released
+} // Guard 在这里被 drop — 锁释放
 
 // --- Channels ---
-// mpsc: Multiple producer, single consumer
-let (tx, mut rx) = mpsc::channel::<String>(100); // Bounded buffer
+// mpsc：多生产者，单消费者
+let (tx, mut rx) = mpsc::channel::<String>(100); // 有界缓冲区
 
 tokio::spawn(async move {
     tx.send("hello".into()).await.unwrap();
@@ -169,17 +169,17 @@ tokio::spawn(async move {
 
 let msg = rx.recv().await.unwrap();
 
-// oneshot: Single value, single consumer
+// oneshot：单值，单消费者
 let (tx, rx) = oneshot::channel::<i32>();
-tx.send(42).unwrap(); // No await needed — either sends or fails
+tx.send(42).unwrap(); // 不需要 await — 要么发送成功要么失败
 let val = rx.await.unwrap();
 
-// broadcast: Multiple producers, multiple consumers (all get every message)
+// broadcast：多生产者，多消费者（所有接收者都能收到每条消息）
 let (tx, _) = broadcast::channel::<String>(100);
 let mut rx1 = tx.subscribe();
 let mut rx2 = tx.subscribe();
 
-// watch: Single value, multiple consumers (only latest value)
+// watch：单值，多消费者（只有最新值）
 let (tx, rx) = watch::channel(0u64);
 tx.send(42).unwrap();
 println!("Latest: {}", *rx.borrow());
@@ -187,54 +187,54 @@ println!("Latest: {}", *rx.borrow());
 
 ```mermaid
 graph LR
-    subgraph "Channel Types"
+    subgraph "通道类型"
         direction TB
-        MPSC["mpsc<br/>N→1<br/>Buffered queue"]
-        ONESHOT["oneshot<br/>1→1<br/>Single value"]
-        BROADCAST["broadcast<br/>N→N<br/>All receivers get all"]
-        WATCH["watch<br/>1→N<br/>Latest value only"]
+        MPSC["mpsc<br/>N→1<br/>有界队列"]
+        ONESHOT["oneshot<br/>1→1<br/>单值"]
+        BROADCAST["broadcast<br/>N→N<br/>所有接收者都收到所有消息"]
+        WATCH["watch<br/>1→N<br/>只有最新值"]
     end
 
-    P1["Producer 1"] --> MPSC
-    P2["Producer 2"] --> MPSC
-    MPSC --> C1["Consumer"]
+    P1["生产者 1"] --> MPSC
+    P2["生产者 2"] --> MPSC
+    MPSC --> C1["消费者"]
 
-    P3["Producer"] --> ONESHOT
-    ONESHOT --> C2["Consumer"]
+    P3["生产者"] --> ONESHOT
+    ONESHOT --> C2["消费者"]
 
-    P4["Producer"] --> BROADCAST
-    BROADCAST --> C3["Consumer 1"]
-    BROADCAST --> C4["Consumer 2"]
+    P4["生产者"] --> BROADCAST
+    BROADCAST --> C3["消费者 1"]
+    BROADCAST --> C4["消费者 2"]
 
-    P5["Producer"] --> WATCH
-    WATCH --> C5["Consumer 1"]
-    WATCH --> C6["Consumer 2"]
+    P5["生产者"] --> WATCH
+    WATCH --> C5["消费者 1"]
+    WATCH --> C6["消费者 2"]
 ```
 
-## Case Study: Choosing the Right Channel for a Notification Service
+## 案例研究：为通知服务选择正确的通道
 
-You're building a notification service where:
-- Multiple API handlers produce events
-- A single background task batches and sends them
-- A config watcher updates rate limits at runtime
-- A shutdown signal must reach all components
+你正在构建一个通知服务，其中：
+- 多个 API 处理器产生事件
+- 一个后台任务批量发送它们
+- 一个配置监视器在运行时更新速率限制
+- 一个关闭信号必须到达所有组件
 
-**Which channels for each?**
+**每个用哪些通道？**
 
-| Requirement | Channel | Why |
+| 需求 | 通道 | 为什么 |
 |-------------|---------|-----|
-| API handlers → Batcher | `mpsc` (bounded) | N producers, 1 consumer. Bounded for backpressure — if the batcher falls behind, API handlers slow down instead of OOM |
-| Config watcher → Rate limiter | `watch` | Only the latest config matters. Multiple readers (each worker) see the current value |
-| Shutdown signal → All components | `broadcast` | Every component must receive the shutdown notification independently |
-| Single health-check response | `oneshot` | Request/response pattern — one value, then done |
+| API 处理器 → 批处理器 | `mpsc`（有界） | N 个生产者，1 个消费者。有界以实现背压——如果批处理器落后，API 处理器会变慢而不是 OOM |
+| 配置监视器 → 速率限制器 | `watch` | 只有最新配置重要。多个读者（每个 worker）看到当前值 |
+| 关闭信号 → 所有组件 | `broadcast` | 每个组件必须独立接收关闭通知 |
+| 单个健康检查响应 | `oneshot` | 请求/响应模式——一个值，然后结束 |
 
 ```mermaid
 graph LR
-    subgraph "Notification Service"
+    subgraph "通知服务"
         direction TB
-        API1["API Handler 1"] -->|mpsc| BATCH["Batcher"]
+        API1["API Handler 1"] -->|mpsc| BATCH["批处理器"]
         API2["API Handler 2"] -->|mpsc| BATCH
-        CONFIG["Config Watcher"] -->|watch| RATE["Rate Limiter"]
+        CONFIG["配置监视器"] -->|watch| RATE["速率限制器"]
         CTRL["Ctrl+C"] -->|broadcast| API1
         CTRL -->|broadcast| BATCH
         CTRL -->|broadcast| RATE
@@ -249,12 +249,12 @@ graph LR
 ```
 
 <details>
-<summary><strong>🏋️ Exercise: Build a Task Pool</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：构建任务池</strong>（点击展开）</summary>
 
-**Challenge**: Build a function `run_with_limit` that accepts a list of async closures and a concurrency limit, executing at most N tasks simultaneously. Use `tokio::sync::Semaphore`.
+**挑战**：构建一个函数 `run_with_limit`，接受一个异步闭包列表和一个并发限制，最多同时执行 N 个任务。使用 `tokio::sync::Semaphore`。
 
 <details>
-<summary>🔑 Solution</summary>
+<summary>🔑 答案</summary>
 
 ```rust
 use std::future::Future;
@@ -274,7 +274,7 @@ where
         let permit = Arc::clone(&semaphore);
         let handle = tokio::spawn(async move {
             let _permit = permit.acquire().await.unwrap();
-            // Permit is held while task runs, then dropped
+            // 任务运行时持有 permit，然后 drop
             task().await
         });
         handles.push(handle);
@@ -287,26 +287,24 @@ where
     results
 }
 
-// Usage:
+// 用法：
 // let tasks: Vec<_> = urls.into_iter().map(|url| {
 //     move || async move { fetch(url).await }
 // }).collect();
-// let results = run_with_limit(tasks, 10).await; // Max 10 concurrent
+// let results = run_with_limit(tasks, 10).await; // 最多 10 个并发
 ```
 
-**Key takeaway**: `Semaphore` is the standard way to limit concurrency in tokio. Each task acquires a permit before starting work. When the semaphore is full, new tasks wait asynchronously (non-blocking) until a slot opens.
+**关键要点**：`Semaphore` 是 tokio 中限制并发的标准方式。每个任务在开始工作前获取一个 permit。当信号量满时，新任务异步等待（非阻塞）直到有槽位空出。
 
 </details>
 </details>
 
-> **Key Takeaways — Tokio Deep Dive**
-> - Use `multi_thread` for servers (default); `current_thread` for CLI tools, tests, or `!Send` types
-> - `tokio::spawn` requires `'static` futures — use `Arc` or channels to share data
-> - Dropping a `JoinHandle` does **not** cancel the task — call `.abort()` explicitly
-> - Choose sync primitives by need: `Mutex` for shared state, `Semaphore` for concurrency limits, `mpsc`/`oneshot`/`broadcast`/`watch` for communication
+> **核心要点 — Tokio 深度探讨**
+> - 服务器使用 `multi_thread`（默认）；CLI 工具、测试或 `!Send` 类型使用 `current_thread`
+> - `tokio::spawn` 要求 `'static` futures——使用 `Arc` 或通道共享数据
+> - Drop `JoinHandle` 不会取消任务——显式调用 `.abort()`
+> - 根据需要选择同步原语：`Mutex` 用于共享状态，`Semaphore` 用于并发限制，`mpsc`/`oneshot`/`broadcast`/`watch` 用于通信
 
-> **See also:** [Ch 9 — When Tokio Isn't the Right Fit](ch09-when-tokio-isnt-the-right-fit.md) for alternatives to spawn, [Ch 12 — Common Pitfalls](ch12-common-pitfalls.md) for MutexGuard-across-await bugs
+> **另见：** [第 9 章 — 何时 Tokio 不是最佳选择](ch09-when-tokio-isnt-the-right-fit.md) 了解 spawn 的替代方案，[第 12 章 — 常见陷阱](ch12-common-pitfalls.md) 了解 MutexGuard 跨 await 的 bug
 
 ***
-
-

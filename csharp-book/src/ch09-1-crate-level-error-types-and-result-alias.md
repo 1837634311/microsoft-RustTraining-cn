@@ -1,13 +1,13 @@
-## Crate-Level Error Types and Result Aliases
+## Crate级错误类型和Result别名
 
-> **What you'll learn:** The production pattern of defining a per-crate error enum with `thiserror`,
-> creating a `Result<T>` type alias, and when to choose `thiserror` (libraries) vs `anyhow` (applications).
+> **学习内容：** 使用`thiserror`定义per-crate错误枚举的生产模式、
+> 创建`Result<T>`类型别名，以及何时选择`thiserror`（库）vs `anyhow`（应用程序）。
 >
-> **Difficulty:** 🟡 Intermediate
+> **难度：** 🟡 中级
 
-A critical pattern for production Rust: define a per-crate error enum and a `Result` type alias to eliminate boilerplate.
+生产级Rust的关键模式：定义per-crate错误枚举和`Result`类型别名以消除样板代码。
 
-### The Pattern
+### 模式
 ```rust
 // src/error.rs
 use thiserror::Error;
@@ -34,7 +34,7 @@ pub enum AppError {
 pub type Result<T> = std::result::Result<T, AppError>;
 ```
 
-### Usage Throughout Your Crate
+### 在整个Crate中使用
 ```rust
 use crate::error::{AppError, Result};
 
@@ -59,7 +59,7 @@ pub async fn create_user(req: CreateUserRequest) -> Result<User> {
 }
 ```
 
-### C# Comparison
+### C# 对比
 ```csharp
 // C# equivalent pattern
 public class AppException : Exception
@@ -75,14 +75,14 @@ public class AppException : Exception
 // In Rust, the error type is in the function signature.
 ```
 
-### Why This Matters
+### 为什么这很重要
 - **`thiserror`** generates `Display` and `Error` impls automatically
 - **`#[from]`** enables the `?` operator to convert library errors automatically
 - The `Result<T>` alias means every function signature is clean: `fn foo() -> Result<Bar>`
 - **Unlike C# exceptions**, callers see all possible error variants in the type
 
 
-### thiserror vs anyhow: When to Use Which
+### thiserror vs anyhow：何时使用哪个
 
 Two crates dominate Rust error handling. Choosing between them is the first decision you'll make:
 
@@ -146,7 +146,7 @@ fn main() -> Result<()> {
 
 **Guideline**: If your code is a **library** (other code calls it), use `thiserror`. If your code is an **application** (the final binary), use `anyhow`. Many projects use both — `thiserror` for the library crate's public API, `anyhow` in the `main()` binary.
 
-### Error Recovery Patterns
+### 错误恢复模式
 
 C# developers are used to `try/catch` blocks that recover from specific exceptions. Rust uses combinators on `Result` for the same purpose:
 
@@ -200,19 +200,19 @@ catch (FileNotFoundException) { /* create file */ }        // Pattern 2
 catch { throw; }                                            // re-throw others
 ```
 
-**When to recover vs propagate:**
-- **Recover** when the error has a sensible default or retry strategy
-- **Propagate with `?`** when the *caller* should decide what to do
-- **Add context** (`.context()`) at module boundaries to build an error trail
+**何时恢复 vs 传播：**
+- **恢复**——当错误有合理的默认值或重试策略时
+- **用`?`传播**——当*调用者*应该决定怎么做时
+- **添加上下文**（`.context()`）——在模块边界构建错误追踪
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Design a Crate Error Type</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：设计Crate错误类型</strong>（点击展开）</summary>
 
-You're building a user registration service. Design the error type using `thiserror`:
+你正在构建一个用户注册服务。使用`thiserror`设计错误类型：
 
 1. Define `RegistrationError` with variants: `DuplicateEmail(String)`, `WeakPassword(String)`, `DatabaseError(#[from] sqlx::Error)`, `RateLimited { retry_after_secs: u64 }`
 2. Create a `type Result<T> = std::result::Result<T, RegistrationError>;` alias
@@ -260,7 +260,7 @@ pub fn register_user(email: &str, password: &str) -> Result<()> {
 }
 ```
 
-**Key pattern**: `#[from]` enables `?` for library errors; explicit `Err(...)` for domain logic. The Result alias keeps every signature clean.
+**关键模式**：`#[from]`启用`?`用于库错误；显式`Err(...)`用于领域逻辑。Result别名保持每个签名整洁。
 
 </details>
 </details>

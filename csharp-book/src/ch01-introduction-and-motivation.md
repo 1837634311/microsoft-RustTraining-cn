@@ -1,25 +1,25 @@
-## Speaker Intro and General Approach
+## 演讲者介绍和总体方法
 
-- Speaker intro
-    - Principal Firmware Architect in Microsoft SCHIE (Silicon and Cloud Hardware Infrastructure Engineering) team
-    - Industry veteran with expertise in security, systems programming (firmware, operating systems, hypervisors), CPU and platform architecture, and C++ systems
-    - Started programming in Rust in 2017 (@AWS EC2), and have been in love with the language ever since
-- This course is intended to be as interactive as possible
-    - Assumption: You know C# and .NET development
-    - Examples deliberately map C# concepts to Rust equivalents
-    - **Please feel free to ask clarifying questions at any point of time**
+- 演讲者介绍
+    - 微软SCHIE（Silicon and Cloud Hardware Infrastructure Engineering）团队的主要固件架构师
+    - 拥有安全、系统编程（固件、操作系统、虚拟机管理程序）、CPU和平台架构以及C++系统方面专业经验的行业资深人士
+    - 2017年开始编程Rust（@AWS EC2），从此爱上了这门语言
+- 本课程旨在尽可能互动
+    - 假设：你了解C#和.NET开发
+    - 示例有意将C#概念映射到Rust等价物
+    - **请随时在任何时候提出澄清性问题**
 
 ---
 
-## The Case for Rust for C# Developers
+## C#开发者选择Rust的理由
 
-> **What you'll learn:** Why Rust matters for C# developers — the performance gap between managed and native code,
-> how Rust eliminates null-reference exceptions and hidden control flow at compile time,
-> and the key scenarios where Rust complements or replaces C#.
+> **你将学到：** 为什么Rust对C#开发者重要 — 托管代码和原生代码之间的性能差距，
+> Rust如何在编译时消除空引用异常和隐藏的控制流，
+> 以及Rust补充或取代C#的关键场景。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-### Performance Without the Runtime Tax
+### 无运行时税的性能
 ```csharp
 // C# - Great productivity, runtime overhead
 public class DataProcessor
@@ -127,9 +127,9 @@ impl SafeOperations {
 
 ***
 
-## Common C# Pain Points That Rust Addresses
+## Rust解决的常见C#痛点
 
-### 1. The Billion Dollar Mistake: Null References
+### 1. 十亿美元错误：空引用
 ```csharp
 // C# - Null reference exceptions are runtime bombs
 public class UserService
@@ -174,7 +174,7 @@ impl UserService {
 }
 ```
 
-### 2. Hidden Exceptions and Control Flow
+### 2. 隐藏的异常和控制流
 ```csharp
 // C# - Exceptions can be thrown from anywhere
 public async Task<UserData> GetUserDataAsync(int userId)
@@ -215,11 +215,11 @@ async fn get_user_data(user_id: i32) -> Result<UserData, UserDataError> {
 }
 ```
 
-### 3. Correctness: The Type System as a Proof Engine
+### 3. 正确性：类型系统作为证明引擎
 
-Rust's type system catches entire categories of logic bugs at compile time that C# can only catch at runtime — or not at all.
+Rust的类型系统在编译时捕获整类逻辑错误，而C#只能在运行时捕获 — 或者根本无法捕获。
 
-#### ADTs vs Sealed-Class Workarounds
+#### ADT vs 密封类变通方案
 ```csharp
 // C# — Discriminated unions require sealed-class boilerplate
 // and the compiler STILL doesn't enforce exhaustive matching.
@@ -261,7 +261,7 @@ fn area(shape: &Shape) -> f64 {
 // Add a new variant → compiler shows you EVERY match that needs updating.
 ```
 
-#### Immutability by Default vs Opt-In Immutability
+#### 默认不可变 vs 选择性不可变
 ```csharp
 // C# — Everything is mutable by default
 public class Config
@@ -305,7 +305,7 @@ fn add_origin(config: &mut Config, origin: String) {
 }
 ```
 
-#### Functional Programming: First-Class vs Afterthought
+#### 函数式编程：一等公民 vs 后加的
 ```csharp
 // C# — FP bolted on; LINQ is expressive but the language fights you
 public IEnumerable<Order> GetHighValueOrders(IEnumerable<Order> orders)
@@ -341,7 +341,7 @@ fn get_high_value_orders(orders: &[Order]) -> Vec<OrderSummary> {
 }
 ```
 
-#### Inheritance: Elegant in Theory, Fragile in Practice
+#### 继承：理论优雅，实践脆弱
 ```csharp
 // C# — The fragile base class problem
 public class Animal
@@ -401,15 +401,12 @@ impl Greeter for RobotDog {} // Clear, explicit behavior
 // Adding a method to Speaker? Compiler tells you everywhere to implement it.
 ```
 
-> **Key insight**: In C#, correctness is a discipline — you hope developers
-> follow conventions, write tests, and catch edge cases in code review.
-> In Rust, correctness is a **property of the type system** — entire
-> categories of bugs (null derefs, forgotten variants, accidental mutation,
-> data races) are structurally impossible.
+> **关键洞察**：在C#中，正确性是一种纪律 — 你希望开发者遵循惯例、编写测试并在代码审查中捕获边缘情况。
+> 在Rust中，正确性是**类型系统的一个属性** — 整类bug（空解引用、遗漏变体、意外变异、数据竞争）在结构上是不可能的。
 
 ***
 
-### 4. Unpredictable Performance Due to GC
+### 4. 由于GC导致的不可预测性能
 ```csharp
 // C# - GC can pause at any time
 public class HighFrequencyTrader

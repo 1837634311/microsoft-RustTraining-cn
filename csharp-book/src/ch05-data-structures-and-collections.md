@@ -1,13 +1,13 @@
-## Tuples and Destructuring
+## 元组和解构
 
-> **What you'll learn:** Rust tuples vs C# `ValueTuple`, arrays and slices, structs vs classes,
-> the newtype pattern for domain modeling with zero-cost type safety, and destructuring syntax.
+> **学习内容：** Rust元组 vs C#的`ValueTuple`、数组和切片、结构体 vs 类、
+> 用于零成本类型安全领域建模的newtype模式，以及解构语法。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-C# has `ValueTuple` (since C# 7). Rust tuples are similar but more deeply integrated into the language.
+C#有`ValueTuple`（自C# 7起）。Rust元组类似，但与语言集成得更深入。
 
-### C# Tuples
+### C# 元组
 ```csharp
 // C# ValueTuple (C# 7+)
 var point = (10, 20);                         // (int, int)
@@ -27,7 +27,7 @@ Console.WriteLine($"{q} remainder {r}");
 var (_, remainder) = Divide(10, 3);  // Ignore quotient
 ```
 
-### Rust Tuples
+### Rust 元组
 ```rust
 // Rust tuples — immutable by default, no named elements
 let point = (10, 20);                // (i32, i32)
@@ -53,7 +53,7 @@ fn greet() {          // implicit return type is ()
 }
 ```
 
-### Key Differences
+### 关键差异
 
 | Feature | C# `ValueTuple` | Rust Tuple |
 |---------|-----------------|------------|
@@ -64,7 +64,7 @@ fn greet() {          // implicit return type is ()
 | Return from functions | Common | Common |
 | Mutable elements | Always mutable | Only with `let mut` |
 
-### Tuple Structs (Newtypes)
+### 元组结构体（Newtypes）
 ```rust
 // When a plain tuple isn't descriptive enough, use a tuple struct:
 struct Meters(f64);     // Single-field "newtype" wrapper
@@ -87,11 +87,11 @@ public readonly record struct Celsius(double Value);
 // Not interchangeable, but records add overhead vs Rust's zero-cost newtypes
 ```
 
-### The Newtype Pattern in Depth: Domain Modeling with Zero Cost
+### Newtype模式深入：零成本领域建模
 
-Newtypes go far beyond preventing unit confusion. They're Rust's primary tool for **encoding business rules into the type system** — replacing the "guard clause" and "validation class" patterns common in C#.
+Newtypes远不止防止单位混淆。它们是Rust将**业务规则编码到类型系统**的主要工具——取代了C#中常见的"守卫子句"和"验证类"模式。
 
-#### C# Validation Approach: Runtime Guards
+#### C# 验证方法：运行时守卫
 ```csharp
 // C# — validation happens at runtime, every time
 public class UserService
@@ -115,7 +115,7 @@ public class UserService
 }
 ```
 
-#### Rust Newtype Approach: Compile-Time Proof
+#### Rust Newtype方法：编译时证明
 ```rust
 /// A validated email address — the type itself IS the proof of validity.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -158,7 +158,7 @@ fn send_email(to: &Email) {
 }
 ```
 
-#### Common Newtype Uses for C# Developers
+#### C#开发者的常见Newtype用途
 
 | C# Pattern | Rust Newtype | What It Prevents |
 |------------|-------------|------------------|
@@ -169,23 +169,23 @@ fn send_email(to: &Email) {
 | `TimeSpan` for different semantics | `struct Timeout(Duration)` | Passing connection timeout as request timeout |
 
 ```rust
-// Zero-cost: newtypes compile to the same assembly as the inner type.
-// This Rust code:
+// 零成本：newtypes编译后与内部类型生成相同的汇编代码。
+// 这段Rust代码：
 struct UserId(u64);
 fn lookup(id: UserId) -> Option<User> { /* ... */ }
 
-// Generates the SAME machine code as:
+// 生成与以下代码相同的机器码：
 fn lookup(id: u64) -> Option<User> { /* ... */ }
-// But with full type safety at compile time!
+// 但具有编译时的完整类型安全！
 ```
 
 ***
 
-## Arrays and Slices
+## 数组和切片
 
-Understanding the difference between arrays, slices, and vectors is crucial.
+理解数组、切片和向量之间的区别至关重要。
 
-### C# Arrays
+### C# 数组
 ```csharp
 // C# arrays
 int[] numbers = new int[5];         // Fixed size, heap allocated
@@ -205,7 +205,7 @@ void ProcessArray(int[] array)
 }
 ```
 
-### Rust Arrays, Slices, and Vectors
+### Rust 数组、切片和向量
 ```rust
 // 1. Arrays - Fixed size, stack allocated
 let numbers: [i32; 5] = [1, 2, 3, 4, 5];  // Type: [i32; 5]
@@ -227,7 +227,7 @@ let mut vec = vec![1, 2, 3, 4, 5];
 vec.push(6);  // Can grow
 ```
 
-### Slices as Function Parameters
+### 切片作为函数参数
 ```csharp
 // C# - Method that works with arrays
 public void ProcessNumbers(int[] numbers)
@@ -261,7 +261,7 @@ fn main() {
 }
 ```
 
-### String Slices (&str) Revisited
+### 字符串切片（&str）再探
 ```rust
 // String and &str relationship
 fn string_slice_example() {
@@ -285,9 +285,9 @@ fn print_string(s: &str) {
 
 ***
 
-## Structs vs Classes
+## 结构体 vs 类
 
-Structs in Rust are similar to classes in C#, but with some key differences around ownership and methods.
+Rust中的结构体与C#中的类类似，但在所有权和方法方面有一些关键差异。
 
 ```mermaid
 graph TD
@@ -306,9 +306,9 @@ graph TD
     style RFields fill:#c8e6c9,color:#000
 ```
 
-> **Key insight**: C# classes always live on the heap behind a reference. Rust structs live on the stack by default — only the dynamically-sized data (like `String` contents) goes to the heap. This eliminates GC overhead for small, frequently-created objects.
+> **关键洞察**：C#类始终在引用背后存在于堆上。Rust结构体默认位于栈上——只有动态大小的数据（如`String`内容）会进入堆。这消除了小型、频繁创建对象的GC开销。
 
-### C# Class Definition
+### C# 类定义
 ```csharp
 // C# class with properties and methods
 public class Person
@@ -336,7 +336,7 @@ public class Person
 }
 ```
 
-### Rust Struct Definition
+### Rust 结构体定义
 ```rust
 // Rust struct with associated functions and methods
 #[derive(Debug)]  // Automatically implement Debug trait
@@ -373,7 +373,7 @@ impl Person {
 }
 ```
 
-### Creating and Using Instances
+### 创建和使用实例
 ```csharp
 // C# object creation and usage
 var person = new Person("Alice", 30);
@@ -403,7 +403,7 @@ person.age = 31;
 println!("{:?}", person);
 ```
 
-### Struct Initialization Patterns
+### 结构体初始化模式
 ```csharp
 // C# object initialization
 var person = new Person("Bob", 25)
@@ -439,11 +439,11 @@ println!("Point: ({}, {})", point.0, point.1);
 
 ***
 
-## Methods and Associated Functions
+## 方法和关联函数
 
-Understanding the difference between methods and associated functions is key.
+理解方法和关联函数之间的区别是关键。
 
-### C# Method Types
+### C# 方法类型
 ```csharp
 public class Calculator
 {
@@ -477,7 +477,7 @@ public class Calculator
 }
 ```
 
-### Rust Method Types
+### Rust 方法类型
 ```rust
 #[derive(Debug)]
 pub struct Calculator {
@@ -533,7 +533,7 @@ fn main() {
 }
 ```
 
-### Method Receiver Types Explained
+### 方法接收器类型详解
 ```rust
 impl Person {
     // &self - Immutable borrow (most common)
@@ -573,12 +573,12 @@ fn method_examples() {
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Slice Window Average</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：滑动窗口平均值</strong>（点击展开）</summary>
 
-**Challenge**: Write a function that takes a slice of `f64` values and a window size, and returns a `Vec<f64>` of rolling averages. For example, `[1.0, 2.0, 3.0, 4.0, 5.0]` with window 3 → `[2.0, 3.0, 4.0]`.
+**挑战**：编写一个函数，接受一个`f64`值的切片和一个窗口大小，返回一个滚动平均值的`Vec<f64>`。例如，`[1.0, 2.0, 3.0, 4.0, 5.0]`窗口为3时 → `[2.0, 3.0, 4.0]`。
 
 ```rust
 fn rolling_average(data: &[f64], window: usize) -> Vec<f64> {
@@ -611,15 +611,15 @@ fn main() {
 }
 ```
 
-**Key takeaway**: Slices have powerful built-in methods like `.windows()`, `.chunks()`, and `.split()` that replace manual index arithmetic. In C#, you'd use `Enumerable.Range` or LINQ `.Skip().Take()`.
+**关键要点**：切片有强大的内置方法，如`.windows()`、`.chunks()`和`.split()`，它们取代了手动索引运算。在C#中，你需要使用`Enumerable.Range`或LINQ的`.Skip().Take()`。
 
 </details>
 </details>
 
 <details>
-<summary><strong>🏋️ Exercise: Mini Address Book</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：迷你通讯录</strong>（点击展开）</summary>
 
-Build a small address book using structs, enums, and methods:
+使用结构体、枚举和方法构建一个小型通讯录：
 
 1. Define an enum `PhoneType { Mobile, Home, Work }`
 2. Define a struct `Contact` with `name: String` and `phones: Vec<(PhoneType, String)>`

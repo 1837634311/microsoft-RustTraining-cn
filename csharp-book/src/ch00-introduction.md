@@ -1,180 +1,407 @@
-# Rust for C# Programmers: Complete Training Guide
+# C#开发者的Rust关键字速查
 
-A comprehensive guide to learning Rust for developers with C# experience. This guide covers everything from basic syntax to advanced patterns, focusing on the conceptual shifts and practical differences between the two languages.
+> **学习内容：** Rust关键字到C# equivalents的快速参考映射 — 可见性修饰符、所有权关键字、控制流、类型定义和模式匹配语法。
+>
+> **难度：** 🟢 初级
 
-## Course Overview
-- **The case for Rust** — Why Rust matters for C# developers: performance, safety, and correctness
-- **Getting started** — Installation, tooling, and your first program
-- **Basic building blocks** — Types, variables, control flow
-- **Data structures** — Arrays, tuples, structs, collections
-- **Pattern matching and enums** — Algebraic data types and exhaustive matching
-- **Ownership and borrowing** — Rust's memory management model
-- **Modules and crates** — Code organization and dependencies
-- **Error handling** — Result-based error propagation
-- **Traits and generics** — Rust's type system
-- **Closures and iterators** — Functional programming patterns
-- **Concurrency** — Fearless concurrency with type-system guarantees, async/await deep dive
-- **Unsafe Rust and FFI** — When and how to go beyond safe Rust
-- **Migration patterns** — Real-world C# to Rust patterns and incremental adoption
-- **Best practices** — Idiomatic Rust for C# developers
+理解Rust的关键字及其用途有助于C#开发者更有效地驾驭这门语言。
 
----
+### 可见性和访问控制关键字
 
-# Self-Study Guide
+#### C# 访问修饰符
+```csharp
+public class Example
+{
+    public int PublicField;           // 到处都可访问
+    private int privateField;        // 仅此类内部
+    protected int protectedField;    // 此类及子类
+    internal int internalField;      // 程序集内部
+    protected internal int protectedInternalField; // 组合
+}
+```
 
-This material works both as an instructor-led course and for self-study. If you're working through it on your own, here's how to get the most out of it.
+#### Rust 可见性关键字
+```rust
+// pub - 使项目公开（类似C#的public）
+pub struct PublicStruct {
+    pub public_field: i32,           // 公开字段
+    private_field: i32,              // 默认私有（无关键字）
+}
 
-**Pacing recommendations:**
+pub mod my_module {
+    pub(crate) fn crate_public() {}     // 当前crate内公开（类似internal）
+    pub(super) fn parent_public() {}    // 对父模块公开
+    pub(self) fn self_public() {}       // 当前模块内公开（与私有相同）
+    
+    pub use super::PublicStruct;        // 重新导出（类似using别名）
+}
 
-| Chapters | Topic | Suggested Time | Checkpoint |
-|----------|-------|---------------|------------|
-| 1–4 | Setup, types, control flow | 1 day | You can write a CLI temperature converter in Rust |
-| 5–6 | Data structures, enums, pattern matching | 1–2 days | You can define an enum with data and `match` exhaustively on it |
-| 7 | Ownership and borrowing | 1–2 days | You can explain *why* `let s2 = s1` invalidates `s1` |
-| 8–9 | Modules, error handling | 1 day | You can create a multi-file project that propagates errors with `?` |
-| 10–12 | Traits, generics, closures, iterators | 1–2 days | You can translate a LINQ chain to Rust iterators |
-| 13 | Concurrency and async | 1 day | You can write a thread-safe counter with `Arc<Mutex<T>>` |
-| 14 | Unsafe Rust, FFI, testing | 1 day | You can call a Rust function from C# via P/Invoke |
-| 15–16 | Migration, best practices, tooling | At your own pace | Reference material — consult as you write real code |
-| 17 | Capstone project | 1–2 days | You have a working CLI tool that fetches weather data |
+// 没有直接等同于C# protected的方案 - 使用组合代替
+```
 
-**How to use the exercises:**
-- Chapters include hands-on exercises in collapsible `<details>` blocks with solutions
-- **Always try the exercise before expanding the solution.** Struggling with the borrow checker is part of learning — the compiler's error messages are your teacher
-- If you're stuck for more than 15 minutes, expand the solution, study it, then close it and try again from scratch
-- The [Rust Playground](https://play.rust-lang.org/) lets you run code without a local install
+### 内存和所有权关键字
 
-**Difficulty indicators:**
-- 🟢 **Beginner** — Direct translation from C# concepts
-- 🟡 **Intermediate** — Requires understanding ownership or traits
-- 🔴 **Advanced** — Lifetimes, async internals, or unsafe code
+#### C# 内存关键字
+```csharp
+// ref - 按引用传递
+public void Method(ref int value) { value = 10; }
 
-**When you hit a wall:**
-- Read the compiler error message carefully — Rust's errors are exceptionally helpful
-- Re-read the relevant section; concepts like ownership (ch7) often click on the second pass
-- The [Rust standard library docs](https://doc.rust-lang.org/std/) are excellent — search for any type or method
-- For deeper async patterns, see the companion [Async Rust Training](../async-book/)
+// out - 输出参数
+public bool TryParse(string input, out int result) { /* */ }
 
----
+// in - 只读引用（C# 7.2+）
+public void ReadOnly(in LargeStruct data) { /* 无法修改data */ }
+```
 
-# Table of Contents
+#### Rust 所有权关键字
+```rust
+// & - 不可变引用（类似C# in参数）
+fn read_only(data: &Vec<i32>) {
+    println!("Length: {}", data.len()); // 可以读取，无法修改
+}
 
-## Part I — Foundations
+// &mut - 可变引用（类似C# ref参数）
+fn modify(data: &mut Vec<i32>) {
+    data.push(42); // 可以修改
+}
 
-### 1. Introduction and Motivation 🟢
-- [The Case for Rust for C# Developers](ch01-introduction-and-motivation.md#the-case-for-rust-for-c-developers)
-- [Common C# Pain Points That Rust Addresses](ch01-introduction-and-motivation.md#common-c-pain-points-that-rust-addresses)
-- [When to Choose Rust Over C#](ch01-introduction-and-motivation.md#when-to-choose-rust-over-c)
-- [Language Philosophy Comparison](ch01-introduction-and-motivation.md#language-philosophy-comparison)
-- [Quick Reference: Rust vs C#](ch01-introduction-and-motivation.md#quick-reference-rust-vs-c)
+// move - 强制移动捕获的闭包
+let data = vec![1, 2, 3];
+let closure = move || {
+    println!("{:?}", data); // data被移入闭包
+};
+// data在这里不再可用
 
-### 2. Getting Started 🟢
-- [Installation and Setup](ch02-getting-started.md#installation-and-setup)
-- [Your First Rust Program](ch02-getting-started.md#your-first-rust-program)
-- [Cargo vs NuGet/MSBuild](ch02-getting-started.md#cargo-vs-nugetmsbuild)
-- [Reading Input and CLI Arguments](ch02-getting-started.md#reading-input-and-cli-arguments)
-- [Essential Rust Keywords *(optional reference — consult as needed)*](ch02-1-essential-keywords-reference.md#essential-rust-keywords-for-c-developers)
+// Box - 堆分配（类似C# new创建引用类型）
+let boxed_data = Box::new(42); // 在堆上分配
+```
 
-### 3. Built-in Types and Variables 🟢
-- [Variables and Mutability](ch03-built-in-types-and-variables.md#variables-and-mutability)
-- [Primitive Types Comparison](ch03-built-in-types-and-variables.md#primitive-types)
-- [String Types: String vs &str](ch03-built-in-types-and-variables.md#string-types-string-vs-str)
-- [Printing and String Formatting](ch03-built-in-types-and-variables.md#printing-and-string-formatting)
-- [Type Casting and Conversions](ch03-built-in-types-and-variables.md#type-casting-and-conversions)
-- [True Immutability vs Record Illusions](ch03-1-true-immutability-vs-record-illusions.md#true-immutability-vs-record-illusions)
+### 控制流关键字
 
-### 4. Control Flow 🟢
-- [Functions vs Methods](ch04-control-flow.md#functions-vs-methods)
-- [Expression vs Statement (Important!)](ch04-control-flow.md#expression-vs-statement-important)
-- [Conditional Statements](ch04-control-flow.md#conditional-statements)
-- [Loops and Iteration](ch04-control-flow.md#loops)
+#### C# 控制流
+```csharp
+// return - 带值退出函数
+public int GetValue() { return 42; }
 
-### 5. Data Structures and Collections 🟢
-- [Tuples and Destructuring](ch05-data-structures-and-collections.md#tuples-and-destructuring)
-- [Arrays and Slices](ch05-data-structures-and-collections.md#arrays-and-slices)
-- [Structs vs Classes](ch05-data-structures-and-collections.md#structs-vs-classes)
-- [Constructor Patterns](ch05-1-constructor-patterns.md#constructor-patterns)
-- [`Vec<T>` vs `List<T>`](ch05-2-collections-vec-hashmap-and-iterators.md#vect-vs-listt)
-- [HashMap vs Dictionary](ch05-2-collections-vec-hashmap-and-iterators.md#hashmap-vs-dictionary)
+// yield return - 迭代器模式
+public IEnumerable<int> GetNumbers()
+{
+    yield return 1;
+    yield return 2;
+}
 
-### 6. Enums and Pattern Matching 🟡
-- [Algebraic Data Types vs C# Unions](ch06-enums-and-pattern-matching.md#algebraic-data-types-vs-c-unions)
-- [Exhaustive Pattern Matching](ch06-1-exhaustive-matching-and-null-safety.md#exhaustive-pattern-matching-compiler-guarantees-vs-runtime-errors)
-- [`Option<T>` for Null Safety](ch06-1-exhaustive-matching-and-null-safety.md#null-safety-nullablet-vs-optiont)
-- [Guards and Advanced Patterns](ch06-enums-and-pattern-matching.md#guards-and-advanced-patterns)
+// break/continue - 循环控制
+foreach (var item in items)
+{
+    if (item == null) continue;
+    if (item.Stop) break;
+}
+```
 
-### 7. Ownership and Borrowing 🟡
-- [Understanding Ownership](ch07-ownership-and-borrowing.md#understanding-ownership)
-- [Move Semantics vs Reference Semantics](ch07-ownership-and-borrowing.md#move-semantics)
-- [Borrowing and References](ch07-ownership-and-borrowing.md#borrowing-basics)
-- [Memory Safety Deep Dive](ch07-1-memory-safety-deep-dive.md#references-vs-pointers)
-- [Lifetimes Deep Dive](ch07-2-lifetimes-deep-dive.md#lifetimes-telling-the-compiler-how-long-references-live) 🔴
-- [Smart Pointers, Drop, and Deref](ch07-3-smart-pointers-beyond-single-ownership.md#smart-pointers-when-single-ownership-isnt-enough) 🔴
+#### Rust 控制流关键字
+```rust
+// return - 显式返回（通常不需要）
+fn get_value() -> i32 {
+    return 42; // 显式返回
+    // 或者: 42 （隐式返回）
+}
 
-### 8. Crates and Modules 🟢
-- [Rust Modules vs C# Namespaces](ch08-crates-and-modules.md#rust-modules-vs-c-namespaces)
-- [Crates vs .NET Assemblies](ch08-crates-and-modules.md#crates-vs-net-assemblies)
-- [Package Management: Cargo vs NuGet](ch08-1-package-management-cargo-vs-nuget.md#package-management-cargo-vs-nuget)
+// break/continue - 带可选值的循环控制
+fn find_value() -> Option<i32> {
+    loop {
+        let value = get_next();
+        if value < 0 { continue; }
+        if value > 100 { break None; }      // 带值break
+        if value == 42 { break Some(value); } // 带成功值break
+    }
+}
 
-### 9. Error Handling 🟡
-- [Exceptions vs `Result<T, E>`](ch09-error-handling.md#exceptions-vs-resultt-e)
-- [The ? Operator](ch09-error-handling.md#the--operator-propagating-errors-concisely)
-- [Custom Error Types](ch06-1-exhaustive-matching-and-null-safety.md#custom-error-types)
-- [Crate-Level Error Types and Result Aliases](ch09-1-crate-level-error-types-and-result-alias.md#crate-level-error-types-and-result-aliases)
-- [Error Recovery Patterns](ch09-1-crate-level-error-types-and-result-alias.md#error-recovery-patterns)
+// loop - 无限循环（类似while(true)）
+loop {
+    if condition { break; }
+}
 
-### 10. Traits and Generics 🟡
-- [Traits vs Interfaces](ch10-traits-and-generics.md#traits---rusts-interfaces)
-- [Inheritance vs Composition](ch10-2-inheritance-vs-composition.md#inheritance-vs-composition)
-- [Generic Constraints: where vs trait bounds](ch10-1-generic-constraints.md#generic-constraints-where-vs-trait-bounds)
-- [Common Standard Library Traits](ch10-traits-and-generics.md#common-standard-library-traits)
+// while - 条件循环
+while condition {
+    // code
+}
 
-### 11. From and Into Traits 🟡
-- [Type Conversions in Rust](ch11-from-and-into-traits.md#type-conversions-in-rust)
-- [Implementing From for Custom Types](ch11-from-and-into-traits.md#rust-from-and-into)
+// for - 迭代器循环
+for item in collection {
+    // code
+}
+```
 
-### 12. Closures and Iterators 🟡
-- [Rust Closures](ch12-closures-and-iterators.md#rust-closures)
-- [LINQ vs Rust Iterators](ch12-closures-and-iterators.md#linq-vs-rust-iterators)
-- [Macros Primer](ch12-1-macros-primer.md#macros-code-that-writes-code)
+### 类型定义关键字
 
----
+#### C# 类型关键字
+```csharp
+// class - 引用类型
+public class MyClass { }
 
-## Part II — Concurrency & Systems
+// struct - 值类型
+public struct MyStruct { }
 
-### 13. Concurrency 🔴
-- [Thread Safety: Convention vs Type System Guarantees](ch13-concurrency.md#thread-safety-convention-vs-type-system-guarantees)
-- [async/await: C# Task vs Rust Future](ch13-1-asyncawait-deep-dive.md#async-programming-c-task-vs-rust-future)
-- [Cancellation Patterns](ch13-1-asyncawait-deep-dive.md#cancellation-cancellationtoken-vs-drop--select)
-- [Pin and tokio::spawn](ch13-1-asyncawait-deep-dive.md#pin-why-rust-async-has-a-concept-c-doesnt)
+// interface - 契约定义
+public interface IMyInterface { }
 
-### 14. Unsafe Rust, FFI, and Testing 🟡
-- [When and Why to Use Unsafe](ch14-unsafe-rust-and-ffi.md#when-you-need-unsafe)
-- [Interop with C# via FFI](ch14-unsafe-rust-and-ffi.md#interop-with-c-via-ffi)
-- [Testing in Rust vs C#](ch14-1-testing.md#testing-in-rust-vs-c)
-- [Property Testing and Mocking](ch14-1-testing.md#property-testing-proving-correctness-at-scale)
+// enum - 枚举
+public enum MyEnum { Value1, Value2 }
 
----
+// delegate - 函数指针
+public delegate void MyDelegate(int value);
+```
 
-## Part III — Migration & Best Practices
+#### Rust 类型关键字
+```rust
+// struct - 数据结构（类似C# class/struct的结合）
+struct MyStruct {
+    field: i32,
+}
 
-### 15. Migration Patterns and Case Studies 🟡
-- [Common C# Patterns in Rust](ch15-migration-patterns-and-case-studies.md#common-c-patterns-in-rust)
-- [Essential Crates for C# Developers](ch15-1-essential-crates-for-c-developers.md#essential-crates-for-c-developers)
-- [Incremental Adoption Strategy](ch15-2-incremental-adoption-strategy.md#incremental-adoption-strategy)
+// enum - 代数数据类型（比C# enum强大得多）
+enum MyEnum {
+    Variant1,
+    Variant2(i32),              // 可以持有数据
+    Variant3 { x: i32, y: i32 }, // 类似结构的变体
+}
 
-### 16. Best Practices and Reference 🟡
-- [Idiomatic Rust for C# Developers](ch16-best-practices.md#best-practices-for-c-developers)
-- [Performance Comparison: Managed vs Native](ch16-1-performance-comparison-and-migration.md#performance-comparison-managed-vs-native)
-- [Common Pitfalls and Solutions](ch16-2-learning-path-and-resources.md#common-pitfalls-for-c-developers)
-- [Learning Path and Resources](ch16-2-learning-path-and-resources.md#learning-path-and-next-steps)
-- [Rust Tooling Ecosystem](ch16-3-rust-tooling-ecosystem.md#essential-rust-tooling-for-c-developers)
+// trait - 接口定义（类似C# interface但更强大）
+trait MyTrait {
+    fn method(&self);
+    
+    // 默认实现（类似C# 8+默认接口方法）
+    fn default_method(&self) {
+        println!("Default implementation");
+    }
+}
 
----
+// type - 类型别名（类似C# using别名）
+type UserId = u32;
+type Result<T> = std::result::Result<T, MyError>;
 
-## Capstone
+// impl - 实现块（无C#等价物 - 方法单独定义）
+impl MyStruct {
+    fn new() -> MyStruct {
+        MyStruct { field: 0 }
+    }
+}
 
-### 17. Capstone Project 🟡
-- [Build a CLI Weather Tool](ch17-capstone-project.md#capstone-project-build-a-cli-weather-tool) — combines structs, traits, error handling, async, modules, serde, and testing into a working application
+impl MyTrait for MyStruct {
+    fn method(&self) {
+        println!("Implementation");
+    }
+}
+```
 
+### 函数定义关键字
+
+#### C# 函数关键字
+```csharp
+// static - 类方法
+public static void StaticMethod() { }
+
+// virtual - 可以被覆盖
+public virtual void VirtualMethod() { }
+
+// override - 覆盖基类方法
+public override void VirtualMethod() { }
+
+// abstract - 必须实现
+public abstract void AbstractMethod();
+
+// async - 异步方法
+public async Task<int> AsyncMethod() { return await SomeTask(); }
+```
+
+#### Rust 函数关键字
+```rust
+// fn - 函数定义（类似C#方法但是独立的）
+fn regular_function() {
+    println!("Hello");
+}
+
+// const fn - 编译时函数（类似C# const但用于函数）
+const fn compile_time_function() -> i32 {
+    42 // 可以在编译时求值
+}
+
+// async fn - 异步函数（类似C# async）
+async fn async_function() -> i32 {
+    some_async_operation().await
+}
+
+// unsafe fn - 可能违反内存安全的函数
+unsafe fn unsafe_function() {
+    // 可以执行不安全操作
+}
+
+// extern fn - 外部函数接口
+extern "C" fn c_compatible_function() {
+    // 可以从C调用
+}
+```
+
+### 变量声明关键字
+
+#### C# 变量关键字
+```csharp
+// var - 类型推断
+var name = "John"; // 推断为string
+
+// const - 编译时常量
+const int MaxSize = 100;
+
+// readonly - 运行时常量
+readonly DateTime createdAt = DateTime.Now;
+
+// static - 类级变量
+static int instanceCount = 0;
+```
+
+#### Rust 变量关键字
+```rust
+// let - 变量绑定（类似C# var）
+let name = "John"; // 默认不可变
+
+// let mut - 可变变量绑定
+let mut count = 0; // 可以更改
+count += 1;
+
+// const - 编译时常量（类似C# const）
+const MAX_SIZE: usize = 100;
+
+// static - 全局变量（类似C# static）
+static INSTANCE_COUNT: std::sync::atomic::AtomicUsize = 
+    std::sync::atomic::AtomicUsize::new(0);
+```
+
+### 模式匹配关键字
+
+#### C# 模式匹配（C# 8+）
+```csharp
+// switch表达式
+string result = value switch
+{
+    1 => "One",
+    2 => "Two",
+    _ => "Other"
+};
+
+// is模式
+if (obj is string str)
+{
+    Console.WriteLine(str.Length);
+}
+```
+
+#### Rust 模式匹配关键字
+```rust
+// match - 模式匹配（类似C# switch但强大得多）
+let result = match value {
+    1 => "One",
+    2 => "Two",
+    3..=10 => "Between 3 and 10", // 范围模式
+    _ => "Other", // 通配符（类似C# _）
+};
+
+// if let - 条件模式匹配
+if let Some(value) = optional {
+    println!("Got value: {}", value);
+}
+
+// while let - 带模式匹配的循环
+while let Some(item) = iterator.next() {
+    println!("Item: {}", item);
+}
+
+// let带模式 - 解构
+let (x, y) = point; // 解构元组
+let Some(value) = optional else {
+    return; // 模式不匹配时提前返回
+};
+```
+
+### 内存安全关键字
+
+#### C# 内存关键字
+```csharp
+// unsafe - 禁用安全检查
+unsafe
+{
+    int* ptr = &variable;
+    *ptr = 42;
+}
+
+// fixed - 固定托管内存
+unsafe
+{
+    fixed (byte* ptr = array)
+    {
+        // 使用ptr
+    }
+}
+```
+
+#### Rust 安全关键字
+```rust
+// unsafe - 禁用借用检查器（谨慎使用！）
+unsafe {
+    let ptr = &variable as *const i32;
+    let value = *ptr; // 解引用原始指针
+}
+
+// 原始指针类型（无C#等价物 - 通常不需要）
+let ptr: *const i32 = &42;  // 不可变原始指针
+let ptr: *mut i32 = &mut 42; // 可变原始指针
+```
+
+### C#中没有的常见Rust关键字
+
+```rust
+// where - 泛型约束（比C# where更灵活）
+fn generic_function<T>() 
+where 
+    T: Clone + Send + Sync,
+{
+    // T必须实现Clone、Send和Sync trait
+}
+
+// dyn - 动态trait对象（类似C# object但类型安全）
+let drawable: Box<dyn Draw> = Box::new(Circle::new());
+
+// Self - 引用实现类型（类似C# this但用于类型）
+impl MyStruct {
+    fn new() -> Self { // Self = MyStruct
+        Self { field: 0 }
+    }
+}
+
+// self - 方法接收器
+impl MyStruct {
+    fn method(&self) { }        // 不可变借用
+    fn method_mut(&mut self) { } // 可变借用  
+    fn consume(self) { }        // 获取所有权
+}
+
+// crate - 引用当前crate根目录
+use crate::models::User; // 从crate根的绝对路径
+
+// super - 引用父模块
+use super::utils; // 从父模块导入
+```
+
+### C#开发者关键字汇总
+
+| 用途 | C# | Rust | 关键差异 |
+|---------|----|----|----------------|
+| 可见性 | `public`, `private`, `internal` | `pub`，默认私有 | `pub(crate)`更细粒度 |
+| 变量 | `var`, `readonly`, `const` | `let`, `let mut`, `const` | 默认不可变 |
+| 函数 | `method()` | `fn` | 独立函数 |
+| 类型 | `class`, `struct`, `interface` | `struct`, `enum`, `trait` | enum是代数类型 |
+| 泛型 | `<T> where T : IFoo` | `<T> where T: Foo` | 更灵活的约束 |
+| 引用 | `ref`, `out`, `in` | `&`, `&mut` | 编译时借用检查 |
+| 模式 | `switch`, `is` | `match`, `if let` | 需要穷举匹配 |
+
+***
 

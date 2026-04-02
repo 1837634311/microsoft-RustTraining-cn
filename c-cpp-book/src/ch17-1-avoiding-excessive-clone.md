@@ -1,11 +1,11 @@
-## Avoiding excessive clone()
+## 避免过度使用 clone()
 
-> **What you'll learn:** Why `.clone()` is a code smell in Rust, how to restructure ownership to eliminate unnecessary copies, and the specific patterns that signal an ownership design problem.
+> **你将学到什么：** 为什么 `.clone()` 在 Rust 中是一种代码异味（code smell），如何重构所有权以消除不必要的复制，以及哪些特定模式表明存在所有权设计问题。
 
-- Coming from C++, `.clone()` feels like a safe default — "just copy it". But excessive cloning hides ownership problems and hurts performance.
-- **Rule of thumb**: If you're cloning to satisfy the borrow checker, you probably need to restructure ownership instead.
+- 从 C++ 转向 Rust，`.clone()` 感觉像是一个安全的默认值——"就复制一下"。但过度克隆会隐藏所有权问题并损害性能。
+- **经验法则**：如果你正在使用克隆来满足借用检查器，可能需要重构所有权结构。
 
-### When clone() is wrong
+### 何时 clone() 是错误的
 
 ```rust
 // BAD: Cloning a String just to pass it to a function that only reads it
@@ -27,7 +27,7 @@ log_message(&message);          // No clone, no allocation
 log_message(&message);          // Can call again — message not consumed
 ```
 
-### Real example: returning `&str` instead of cloning
+### 实际示例：返回 `&str` 而不是克隆
 ```rust
 // Example: healthcheck.rs — returns a borrowed view, zero allocation
 pub fn serial_or_unknown(&self) -> &str {
@@ -40,7 +40,7 @@ pub fn model_or_unknown(&self) -> &str {
 ```
 The C++ equivalent would return `const std::string&` or `std::string_view` — but in C++ neither is lifetime-checked. In Rust, the borrow checker guarantees the returned `&str` can't outlive `self`.
 
-### Real example: static string slices — no heap at all
+### 实际示例：静态字符串切片——完全不需要堆
 ```rust
 // Example: healthcheck.rs — compile-time string tables
 const HBM_SCREEN_RECIPES: &[&str] = &[
@@ -50,16 +50,16 @@ const HBM_SCREEN_RECIPES: &[&str] = &[
 ```
 In C++ this would typically be `std::vector<std::string>` (heap-allocated on first use). Rust's `&'static [&'static str]` lives in read-only memory — zero runtime cost.
 
-### When clone() IS appropriate
+### 何时 clone() 是合适的
 
-| **Situation** | **Why clone is OK** | **Example** |
+| **情况** | **为什么 clone 是可以的** | **示例** |
 |--------------|--------------------|-----------|
 | `Arc::clone()` for threading | Bumps ref count (~1 ns), doesn't copy data | `let flag = stop_flag.clone();` |
 | Moving data into a spawned thread | Thread needs its own copy | `let ctx = ctx.clone(); thread::spawn(move \|\| { ... })` |
 | Extracting from `&self` fields | Can't move out of a borrow | `self.name.clone()` when returning owned `String` |
 | Small `Copy` types wrapped in `Option` | `.copied()` is clearer than `.clone()` | `opt.get(0).copied()` for `Option<&u32>` → `Option<u32>` |
 
-### Real example: Arc::clone for thread sharing
+### 实际示例：Arc::clone 用于线程共享
 ```rust
 // Example: workload.rs — Arc::clone is cheap (ref count bump)
 let stop_flag = Arc::new(AtomicBool::new(false));
@@ -71,7 +71,7 @@ let sensor_handle = thread::spawn(move || {
 });
 ```
 
-### Checklist: Should I clone?
+### 检查清单：我应该 clone 吗？
 1. **Can I accept `&str` / `&T` instead of `String` / `T`?** → Borrow, don't clone
 2. **Can I restructure to avoid needing two owners?** → Pass by reference or use scopes
 3. **Is this `Arc::clone()`?** → That's fine, it's O(1)
@@ -80,14 +80,11 @@ let sensor_handle = thread::spawn(move || {
 
 ----
 
-## `Cow<'a, T>`: Clone-on-Write — borrow when you can, clone when you must
+## `Cow<'a, T>`：写时复制——能借用就借用，必须修改才克隆
 
-`Cow` (Clone on Write) is an enum that holds **either** a borrowed reference **or**
-an owned value. It's the Rust equivalent of "avoid allocation when possible, but
-allocate if you need to modify." C++ has no direct equivalent — the closest is a function
-that returns `const std::string&` sometimes and `std::string` other times.
+`Cow`（Clone on Write，写时复制）是一个枚举，包含**要么**借用的引用**要么**拥有的值。它相当于 Rust 中的"尽量避免分配，但需要修改时才分配"。C++ 没有直接等价物——最接近的是有时返回 `const std::string&` 有时返回 `std::string` 的函数。
 
-### Why `Cow` exists
+### 为什么存在 Cow
 
 ```rust
 // Without Cow — you must choose: always borrow OR always clone
@@ -111,7 +108,7 @@ fn normalize(s: &str) -> Cow<'_, str> {
 }
 ```
 
-### How `Cow` works
+### Cow 的工作原理
 
 ```rust
 use std::borrow::Cow;
@@ -144,7 +141,7 @@ fn main() {
 }
 ```
 
-### Real-world use case: config value normalization
+### 实际用例：配置值规范化
 
 ```rust
 use std::borrow::Cow;
@@ -167,28 +164,26 @@ fn main() {
 }
 ```
 
-### When to use `Cow`
+### 何时使用 `Cow`
 
-| **Situation** | **Use `Cow`?** |
+| **情况** | **使用 `Cow`？** |
 |--------------|---------------|
-| Function returns input unchanged most of the time | ✅ Yes — avoid unnecessary clones |
-| Parsing/normalizing strings (trim, lowercase, replace) | ✅ Yes — often input is already valid |
-| Always modifying — every code path allocates | ❌ No — just return `String` |
-| Simple pass-through (never modifies) | ❌ No — just return `&str` |
-| Data stored in a struct long-term | ❌ No — use `String` (owned) |
+| 函数大部分时间原样返回输入 | ✅ 是——避免不必要的克隆 |
+| 解析/规范化字符串（trim、lowercase、replace） | ✅ 是——输入通常已经有效 |
+| 总是修改——每条代码路径都分配 | ❌ 否——直接返回 `String` |
+| 简单透传（从不修改） | ❌ 否——直接返回 `&str` |
+| 长期存储在结构体中 | ❌ 否——使用 `String`（拥有所有权） |
 
-> **C++ comparison**: `Cow<str>` is like a function that returns `std::variant<std::string_view, std::string>`
-> — except with automatic deref and no boilerplate to access the value.
+> **C++ 比较**：`Cow<str>` 就像一个返回 `std::variant<std::string_view, std::string>` 的函数
+> ——只不过带有自动解引用和零样板代码来访问值。
 
 ----
 
-## `Weak<T>`: Breaking Reference Cycles — Rust's `weak_ptr`
+## `Weak<T>`：打破引用循环——Rust 的 `weak_ptr`
 
-`Weak<T>` is the Rust equivalent of C++ `std::weak_ptr<T>`. It holds a non-owning
-reference to an `Rc<T>` or `Arc<T>` value. The value can be deallocated while
-`Weak` references still exist — calling `upgrade()` returns `None` if the value is gone.
+`Weak<T>` 是 C++ `std::weak_ptr<T>` 的 Rust 等价物。它持有对 `Rc<T>` 或 `Arc<T>` 值的非拥有引用。当值被释放时 `Weak` 引用仍然存在——调用 `upgrade()` 会在值消失时返回 `None`。
 
-### Why `Weak` exists
+### 为什么存在 Weak
 
 `Rc<T>` and `Arc<T>` create reference cycles if two values point to each
 other — neither ever reaches refcount 0, so neither is dropped (memory leak).
@@ -237,7 +232,7 @@ fn main() {
 }
 ```
 
-### C++ comparison
+### C++ 比较
 
 ```cpp
 // C++ — weak_ptr to break shared_ptr cycle
@@ -261,47 +256,45 @@ if (auto p = child->parent.lock()) {   // lock() → shared_ptr or null
 }
 ```
 
-| C++ | Rust | Notes |
+| C++ | Rust | 备注 |
 |-----|------|-------|
-| `shared_ptr<T>` | `Rc<T>` (single-thread) / `Arc<T>` (multi-thread) | Same semantics |
-| `weak_ptr<T>` | `Weak<T>` from `Rc::downgrade()` / `Arc::downgrade()` | Same semantics |
-| `weak_ptr::lock()` → `shared_ptr` or null | `Weak::upgrade()` → `Option<Rc<T>>` | `None` if dropped |
-| `shared_ptr::use_count()` | `Rc::strong_count()` | Same meaning |
+| `shared_ptr<T>` | `Rc<T>`（单线程）/ `Arc<T>`（多线程） | 相同语义 |
+| `weak_ptr<T>` | `Weak<T>` 来自 `Rc::downgrade()` / `Arc::downgrade()` | 相同语义 |
+| `weak_ptr::lock()` → `shared_ptr` 或 null | `Weak::upgrade()` → `Option<Rc<T>>` | 如果已释放则为 `None` |
+| `shared_ptr::use_count()` | `Rc::strong_count()` | 相同含义 |
 
-### When to use `Weak`
+### 何时使用 `Weak`
 
-| **Situation** | **Pattern** |
+| **情况** | **模式** |
 |--------------|-----------|
-| Parent ↔ child tree relationships | Parent holds `Rc<Child>`, child holds `Weak<Parent>` |
-| Observer pattern / event listeners | Event source holds `Weak<Observer>`, observer holds `Rc<Source>` |
-| Cache that doesn't prevent deallocation | `HashMap<Key, Weak<Value>>` — entries go stale naturally |
-| Breaking cycles in graph structures | Cross-links use `Weak`, tree edges use `Rc`/`Arc` |
+| 父 ↔ 子树关系 | 父持有 `Rc<Child>`，子持有 `Weak<Parent>` |
+| 观察者模式 / 事件监听器 | 事件源持有 `Weak<Observer>`，观察器持有 `Rc<Source>` |
+| 不阻止释放的缓存 | `HashMap<Key, Weak<Value>>` — 条目自然变陈 |
+| 打破图结构中的循环 | 交叉链接使用 `Weak`，树边使用 `Rc`/`Arc` |
 
-> **Prefer the arena pattern** (Case Study 2) over `Rc/Weak` for tree structures in
-> new code. `Vec<T>` + indices is simpler, faster, and has zero reference-counting
-> overhead. Use `Rc/Weak` when you need shared ownership with dynamic lifetimes.
+> **在新代码中优先使用 arena 模式**（案例研究 2）而不是 `Rc/Weak` 来处理树结构。`Vec<T>` + 索引更简单、更快，且没有引用计数的开销。只有当你需要具有动态生命周期的共享所有权时才使用 `Rc/Weak`。
 
 ----
 
-## Copy vs Clone, PartialEq vs Eq — when to derive what
+## Copy vs Clone、PartialEq vs Eq——何时派生什么
 
-- **Copy ≈ C++ trivially copyable (no custom copy ctor/dtor).** Types like `int`, `enum`, and simple POD structs — the compiler generates a bitwise `memcpy` automatically. In Rust, `Copy` is the same idea: assignment `let b = a;` does an implicit bitwise copy and both variables remain valid.
-- **Clone ≈ C++ copy constructor / `operator=` deep-copy.** When a C++ class has a custom copy constructor (e.g., to deep-copy a `std::vector` member), the equivalent in Rust is implementing `Clone`. You must call `.clone()` explicitly — Rust never hides an expensive copy behind `=`.
-- **Key distinction:** In C++, both trivial copies and deep copies happen implicitly via the same `=` syntax. Rust forces you to choose: `Copy` types copy silently (cheap), non-`Copy` types **move** by default, and you must opt in to an expensive duplicate with `.clone()`.
-- Similarly, C++ `operator==` doesn't distinguish between types where `a == a` always holds (like integers) and types where it doesn't (like `float` with NaN). Rust encodes this in `PartialEq` vs `Eq`.
+- **Copy ≈ C++ 可平凡复制（无自定义拷贝构造函数/析构函数）。** 像 `int`、`enum` 和简单的 POD 结构体这样的类型——编译器自动生成按位 `memcpy`。在 Rust 中，`Copy` 是相同的概念：赋值 `let b = a;` 执行隐式按位复制，且两个变量都保持有效。
+- **Clone ≈ C++ 拷贝构造函数 / `operator=` 深复制。** 当一个 C++ 类有自定义拷贝构造函数（例如深拷贝 `std::vector` 成员）时，Rust 中的等价物是实现 `Clone`。你必须显式调用 `.clone()` ——Rust 从不会在 `=` 背后隐藏昂贵的复制。
+- **关键区别：** 在 C++ 中，平凡复制和深复制都通过相同的 `=` 语法隐式发生。Rust 强制你选择：`Copy` 类型静默复制（廉价），非 `Copy` 类型默认**移动**，而你必须通过 `.clone()` 选择加入昂贵的复制。
+- 类似地，C++ `operator==` 不区分 `a == a` 总是成立的类型（如整数）和不成立的类型（如带 NaN 的 `float`）。Rust 在 `PartialEq` vs `Eq` 中对此进行编码。
 
 ### Copy vs Clone
 
 | | **Copy** | **Clone** |
 |---|---------|----------|
-| **How it works** | Bitwise memcpy (implicit) | Custom logic (explicit `.clone()`) |
-| **When it happens** | On assignment: `let b = a;` | Only when you call `.clone()` |
-| **After copy/clone** | Both `a` and `b` are valid | Both `a` and `b` are valid |
-| **Without either** | `let b = a;` **moves** `a` (a is gone) | `let b = a;` **moves** `a` (a is gone) |
-| **Allowed for** | Types with no heap data | Any type |
-| **C++ analogy** | Trivially copyable / POD types (no custom copy ctor) | Custom copy constructor (deep copy) |
+| **如何工作** | 按位 memcpy（隐式） | 自定义逻辑（显式 `.clone()`） |
+| **何时发生** | 赋值时：`let b = a;` | 仅当你调用 `.clone()` 时 |
+| **复制/克隆后** | `a` 和 `b` 都有效 | `a` 和 `b` 都有效 |
+| **没有两者时** | `let b = a;` **移动** `a`（a 没了） | `let b = a;` **移动** `a`（a 没了） |
+| **允许用于** | 无堆数据的类型 | 任何类型 |
+| **C++ 类比** | 可平凡复制 / POD 类型（无自定义拷贝构造函数） | 自定义拷贝构造函数（深拷贝） |
 
-### Real example: Copy — simple enums
+### 实际示例：Copy——简单枚举
 ```rust
 // From fan_diag/src/sensor.rs — all unit variants, fits in 1 byte
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -320,7 +313,7 @@ let copy = status;   // Implicit copy — status is still valid
 println!("{:?} {:?}", status, copy);  // Both work
 ```
 
-### Real example: Copy — enum with integer payloads
+### 实际示例：Copy——带整数载荷的枚举
 ```rust
 // Example: healthcheck.rs — u32 payloads are Copy, so the whole enum is too
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -334,7 +327,7 @@ pub enum HealthcheckStatus {
 }
 ```
 
-### Real example: Clone only — struct with heap data
+### 实际示例：仅 Clone——带堆数据的结构体
 ```rust
 // Example: components.rs — String prevents Copy
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -348,7 +341,7 @@ pub struct FruData {
 // let a = fru_data.clone();  → CLONES (fru_data still valid, new heap allocation)
 ```
 
-### The rule: Can it be Copy?
+### 规则：它可以是 Copy 吗？
 ```text
 Does the type contain String, Vec, Box, HashMap,
 Rc, Arc, or any other heap-owning type?
@@ -360,13 +353,13 @@ Rc, Arc, or any other heap-owning type?
 
 | | **PartialEq** | **Eq** |
 |---|--------------|-------|
-| **What it gives you** | `==` and `!=` operators | Marker: "equality is reflexive" |
-| **Reflexive? (a == a)** | Not guaranteed | **Guaranteed** |
-| **Why it matters** | `f32::NAN != f32::NAN` | `HashMap` keys **require** `Eq` |
-| **When to derive** | Almost always | When the type has no `f32`/`f64` fields |
-| **C++ analogy** | `operator==` | No direct equivalent (C++ doesn't check) |
+| **给你什么** | `==` 和 `!=` 运算符 | 标记："相等是自反的" |
+| **自反的？(a == a)** | 不保证 | **保证** |
+| **为什么重要** | `f32::NAN != f32::NAN` | `HashMap` 键**需要** `Eq` |
+| **何时派生** | 几乎总是 | 当类型没有 `f32`/`f64` 字段时 |
+| **C++ 类比** | `operator==` | 没有直接等价物（C++ 不检查） |
 
-### Real example: Eq — used as HashMap key
+### 实际示例：Eq——用作 HashMap 键
 ```rust
 // From hms_trap/src/cpu_handler.rs — Hash requires Eq
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -381,7 +374,7 @@ pub enum CpuFaultType {
 // HashMap keys must be Eq + Hash — PartialEq alone won't compile
 ```
 
-### Real example: No Eq possible — type contains f32
+### 实际示例：不可能实现 Eq——类型包含 f32
 ```rust
 // Example: types.rs — f32 prevents Eq
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -398,11 +391,11 @@ pub struct TemperatureSensors {
 
 | | **PartialOrd** | **Ord** |
 |---|---------------|--------|
-| **What it gives you** | `<`, `>`, `<=`, `>=` | `.sort()`, `BTreeMap` keys |
-| **Total ordering?** | No (some pairs may be incomparable) | **Yes** (every pair is comparable) |
-| **f32/f64?** | PartialOrd only (NaN breaks ordering) | Cannot derive Ord |
+| **给你什么** | `<`, `>`, `<=`, `>=` | `.sort()`、`BTreeMap` 键 |
+| **全序？** | 否（某些对可能不可比较） | **是**（每对都可比较） |
+| **f32/f64？** | 仅 PartialOrd（NaN 打破排序） | 不能派生 Ord |
 
-### Real example: Ord — severity ranking
+### 实际示例：Ord——严重程度排名
 ```rust
 // From hms_trap/src/fault.rs — variant order defines severity
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -416,7 +409,7 @@ pub enum FaultSeverity {
 // Enables: if severity >= FaultSeverity::Error { escalate(); }
 ```
 
-### Real example: Ord — diagnostic levels for comparison
+### 实际示例：Ord——用于比较的诊断级别
 ```rust
 // Example: orchestration.rs
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -430,7 +423,7 @@ pub enum GpuDiagLevel {
 // Enables: if requested_level >= GpuDiagLevel::Extended { run_extended_tests(); }
 ```
 
-### Derive decision tree
+### 派生决策树
 
 ```text
                         Your new type
@@ -461,15 +454,15 @@ pub enum GpuDiagLevel {
                 + Hash                   + Hash
 ```
 
-### Quick reference: common derive combos from production Rust code
+### 快速参考：生产级 Rust 代码中的常见派生组合
 
-| **Type category** | **Typical derive** | **Example** |
+| **类型类别** | **典型派生** | **示例** |
 |-------------------|--------------------|------------|
-| Simple status enum | `Copy, Clone, PartialEq, Eq, Default` | `FanStatus` |
-| Enum used as HashMap key | `Copy, Clone, PartialEq, Eq, Hash` | `CpuFaultType`, `SelComponent` |
-| Sortable severity enum | `Copy, Clone, PartialEq, Eq, PartialOrd, Ord` | `FaultSeverity`, `GpuDiagLevel` |
-| Data struct with Strings | `Clone, Debug, Serialize, Deserialize` | `FruData`, `OverallSummary` |
-| Serializable config | `Clone, Debug, Default, Serialize, Deserialize` | `DiagConfig` |
+| 简单状态枚举 | `Copy, Clone, PartialEq, Eq, Default` | `FanStatus` |
+| 用作 HashMap 键的枚举 | `Copy, Clone, PartialEq, Eq, Hash` | `CpuFaultType`, `SelComponent` |
+| 可排序的严重程度枚举 | `Copy, Clone, PartialEq, Eq, PartialOrd, Ord` | `FaultSeverity`, `GpuDiagLevel` |
+| 带 String 的数据结构体 | `Clone, Debug, Serialize, Deserialize` | `FruData`, `OverallSummary` |
+| 可序列化的配置 | `Clone, Debug, Default, Serialize, Deserialize` | `DiagConfig` |
 
 ----
 

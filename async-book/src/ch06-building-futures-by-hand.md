@@ -1,16 +1,16 @@
-# 6. Building Futures by Hand 🟡
+# 6. 手动构建 Futures 🟡
 
-> **What you'll learn:**
-> - Implementing a `TimerFuture` with thread-based waking
-> - Building a `Join` combinator: run two futures concurrently
-> - Building a `Select` combinator: race two futures
-> - How combinators compose — futures all the way down
+> **你将学到：**
+> - 使用基于线程的唤醒实现 `TimerFuture`
+> - 构建 `Join` 组合器：并发运行两个 futures
+> - 构建 `Select` 组合器：让两个 futures 竞速
+> - 组合器如何组合——到底层都是 futures
 
-## A Simple Timer Future
+## 一个简单的 Timer Future
 
-Now let's build real, useful futures from scratch. This cements the theory from chapters 2-5.
+现在让我们从零开始构建真实、有用的 futures。这巩固了第 2-5 章的理论。
 
-### TimerFuture: A Complete Example
+### TimerFuture：一个完整的示例
 
 ```rust
 use std::future::Future;
@@ -36,14 +36,14 @@ impl TimerFuture {
             waker: None,
         }));
 
-        // Spawn a thread that sets completed=true after the duration
+        // 产生一个线程，在指定时长后设置 completed=true
         let thread_shared_state = Arc::clone(&shared_state);
         thread::spawn(move || {
             thread::sleep(duration);
             let mut state = thread_shared_state.lock().unwrap();
             state.completed = true;
             if let Some(waker) = state.waker.take() {
-                waker.wake(); // Notify the executor
+                waker.wake(); // 通知执行器
             }
         });
 
@@ -59,37 +59,36 @@ impl Future for TimerFuture {
         if state.completed {
             Poll::Ready(())
         } else {
-            // Store the waker so the timer thread can wake us
-            // IMPORTANT: Always update the waker — the executor may
-            // have changed it between polls
+            // 存储 waker 以便 timer 线程可以唤醒我们
+            // 重要：总是更新 waker——执行器可能在轮询之间改变了它
             state.waker = Some(cx.waker().clone());
             Poll::Pending
         }
     }
 }
 
-// Usage:
+// 用法：
 // async fn example() {
 //     println!("Starting timer...");
 //     TimerFuture::new(Duration::from_secs(2)).await;
 //     println!("Timer done!");
 // }
 //
-// ⚠️ This spawns an OS thread per timer — fine for learning, but in
-// production use `tokio::time::sleep` which is backed by a shared
-// timer wheel and requires zero extra threads.
+// ⚠️ 这为每个 timer 产生一个 OS 线程——适合学习，但在生产环境中
+// 使用 `tokio::time::sleep`，它由共享 timer wheel 支持，
+// 不需要额外的线程。
 ```
 
-### Join: Running Two Futures Concurrently
+### Join：并发运行两个 Futures
 
-`Join` polls two futures and completes when *both* finish. This is how `tokio::join!` works internally:
+`Join` 轮询两个 futures 并在*两者*都完成时完成。这就是 `tokio::join!` 内部的工作方式：
 
 ```rust
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-/// Polls two futures concurrently, returns both results as a tuple
+/// 并发轮询两个 futures，以元组形式返回两个结果
 pub struct Join<A, B>
 where
     A: Future,
@@ -102,7 +101,7 @@ where
 enum MaybeDone<F: Future> {
     Pending(F),
     Done(F::Output),
-    Taken, // Output has been taken
+    Taken, // 输出已被取出
 }
 
 impl<A, B> Join<A, B>
@@ -126,24 +125,24 @@ where
     type Output = (A::Output, B::Output);
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // Poll A if not done
+        // 如果 A 未完成，则轮询它
         if let MaybeDone::Pending(ref mut fut) = self.a {
             if let Poll::Ready(val) = Pin::new(fut).poll(cx) {
                 self.a = MaybeDone::Done(val);
             }
         }
 
-        // Poll B if not done
+        // 如果 B 未完成，则轮询它
         if let MaybeDone::Pending(ref mut fut) = self.b {
             if let Poll::Ready(val) = Pin::new(fut).poll(cx) {
                 self.b = MaybeDone::Done(val);
             }
         }
 
-        // Both done?
+        // 两个都完成了？
         match (&self.a, &self.b) {
             (MaybeDone::Done(_), MaybeDone::Done(_)) => {
-                // Take both outputs
+                // 取出两个输出
                 let a_val = match std::mem::replace(&mut self.a, MaybeDone::Taken) {
                     MaybeDone::Done(v) => v,
                     _ => unreachable!(),
@@ -154,31 +153,31 @@ where
                 };
                 Poll::Ready((a_val, b_val))
             }
-            _ => Poll::Pending, // At least one is still pending
+            _ => Poll::Pending, // 至少有一个仍在 pending
         }
     }
 }
 
-// Usage:
+// 用法：
 // let (page1, page2) = Join::new(
 //     http_get("https://example.com/a"),
 //     http_get("https://example.com/b"),
 // ).await;
-// Both requests run concurrently!
+// 两个请求并发运行！
 ```
 
-> **Key insight**: "Concurrent" here means *interleaved on the same thread*.
-> Join doesn't spawn threads — it polls both futures in the same `poll()` call.
-> This is cooperative concurrency, not parallelism.
+> **关键洞察**：这里的"并发"意味着*在同一线程上交错执行*。
+> Join 不产生线程——它在同一个 `poll()` 调用中轮询两个 futures。
+> 这是协作式并发，不是并行。
 
 ```mermaid
 graph LR
-    subgraph "Future Combinators"
+    subgraph "Future 组合器"
         direction TB
-        TIMER["TimerFuture<br/>Single future, wake after delay"]
-        JOIN["Join&lt;A, B&gt;<br/>Wait for BOTH"]
-        SELECT["Select&lt;A, B&gt;<br/>Wait for FIRST"]
-        RETRY["RetryFuture<br/>Re-create on failure"]
+        TIMER["TimerFuture<br/>单个 future，延迟后唤醒"]
+        JOIN["Join&lt;A, B&gt;<br/>等待两者都完成"]
+        SELECT["Select&lt;A, B&gt;<br/>等待第一个完成"]
+        RETRY["RetryFuture<br/>失败时重新创建"]
     end
 
     TIMER --> JOIN
@@ -191,9 +190,9 @@ graph LR
     style RETRY fill:#fadbd8,stroke:#e74c3c,color:#000
 ```
 
-### Select: Racing Two Futures
+### Select：让两个 Futures 竞速
 
-`Select` completes when *either* future finishes first (the other is dropped):
+`Select` 在*任一* future 首先完成时完成（另一个被 drop）：
 
 ```rust
 use std::future::Future;
@@ -205,7 +204,7 @@ pub enum Either<A, B> {
     Right(B),
 }
 
-/// Returns whichever future completes first; drops the other
+/// 返回最先完成的 future；丢弃另一个
 pub struct Select<A, B> {
     a: A,
     b: B,
@@ -229,12 +228,12 @@ where
     type Output = Either<A::Output, B::Output>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // Poll A first
+        // 先轮询 A
         if let Poll::Ready(val) = Pin::new(&mut self.a).poll(cx) {
             return Poll::Ready(Either::Left(val));
         }
 
-        // Then poll B
+        // 然后轮询 B
         if let Poll::Ready(val) = Pin::new(&mut self.b).poll(cx) {
             return Poll::Ready(Either::Right(val));
         }
@@ -243,25 +242,25 @@ where
     }
 }
 
-// Usage with timeout:
+// 与超时一起使用：
 // match Select::new(http_get(url), TimerFuture::new(timeout)).await {
 //     Either::Left(response) => println!("Got response: {}", response),
 //     Either::Right(()) => println!("Request timed out!"),
 // }
 ```
 
-> **Fairness note**: Our `Select` always polls A first — if both are ready, A
-> always wins. Tokio's `select!` macro randomizes the poll order for fairness.
+> **公平性注意**：我们的 `Select` 总是先轮询 A——如果两者都就绪，A 总是赢。
+> Tokio 的 `select!` 宏为公平性随机化轮询顺序。
 
 <details>
-<summary><strong>🏋️ Exercise: Build a RetryFuture</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：构建 RetryFuture</strong>（点击展开）</summary>
 
-**Challenge**: Build a `RetryFuture<F, Fut>` that takes a closure `F: Fn() -> Fut` and retries up to N times if the inner future returns `Err`. It should return the first `Ok` result or the last `Err`.
+**挑战**：构建一个 `RetryFuture<F, Fut>`，它接受一个闭包 `F: Fn() -> Fut`，如果内部 future 返回 `Err` 则重试最多 N 次。它应该返回第一个 `Ok` 结果或最后一个 `Err`。
 
-*Hint*: You'll need states for "running attempt" and "all attempts exhausted."
+*提示*：你需要"运行尝试"和"所有尝试耗尽"的状态。
 
 <details>
-<summary>🔑 Solution</summary>
+<summary>🔑 答案</summary>
 
 ```rust
 use std::future::Future;
@@ -314,7 +313,7 @@ where
                         if self.remaining > 0 {
                             self.remaining -= 1;
                             self.current = Some((self.factory)());
-                            // Loop to poll the new future immediately
+                            // 循环立即轮询新的 future
                         } else {
                             return Poll::Ready(Err(self.last_error.take().unwrap()));
                         }
@@ -328,25 +327,23 @@ where
     }
 }
 
-// Usage:
+// 用法：
 // let result = RetryFuture::new(3, || async {
 //     http_get("https://flaky-server.com/api").await
 // }).await;
 ```
 
-**Key takeaway**: The retry future is itself a state machine: it holds the current attempt and creates new inner futures on failure. This is how combinators compose — futures all the way down.
+**关键要点**：retry future 本身是一个状态机：它持有当前尝试并在失败时创建新的内部 futures。这就是组合器组合的方式——到底层都是 futures。
 
 </details>
 </details>
 
-> **Key Takeaways — Building Futures by Hand**
-> - A future needs three things: state, a `poll()` implementation, and a waker registration
-> - `Join` polls both sub-futures; `Select` returns whichever finishes first
-> - Combinators are themselves futures wrapping other futures — it's turtles all the way down
-> - Building futures by hand gives deep insight, but in production use `tokio::join!`/`select!`
+> **核心要点 — 手动构建 Futures**
+> - 一个 future 需要三样东西：状态、`poll()` 实现和 waker 注册
+> - `Join` 轮询两个子 futures；`Select` 返回最先完成的
+> - 组合器本身是包装其他 futures 的 futures——到底层都是 turtles
+> - 手动构建 futures 能获得深入理解，但在生产环境中使用 `tokio::join!`/`select!`
 
-> **See also:** [Ch 2 — The Future Trait](ch02-the-future-trait.md) for the trait definition, [Ch 8 — Tokio Deep Dive](ch08-tokio-deep-dive.md) for production-grade equivalents
+> **另见：** [第 2 章 — Future Trait](ch02-the-future-trait.md) 了解 trait 定义，[第 8 章 — Tokio 深度探讨](ch08-tokio-deep-dive.md) 了解生产级等价物
 
 ***
-
-

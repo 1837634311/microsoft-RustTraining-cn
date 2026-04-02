@@ -1,14 +1,14 @@
-## Rust closures
+## Rust 闭包
 
-> **What you'll learn:** Closures as anonymous functions, the three capture traits (`Fn`, `FnMut`, `FnOnce`), `move` closures, and how Rust closures compare to C++ lambdas — with automatic capture analysis instead of manual `[&]`/`[=]` specifications.
+> **你将学到什么：** 闭包作为匿名函数、三种捕获 traits（`Fn`、`FnMut`、`FnOnce`）、`move` 闭包，以及 Rust 闭包如何与 C++ lambda 比较——具有自动捕获分析而不是手动的 `[&]`/`[=]` 规范。
 
-- Closures are anonymous functions that can capture their environment
-    - C++ equivalent: lambdas (`[&](int x) { return x + 1; }`)
-    - Key difference: Rust closures have **three** capture traits (`Fn`, `FnMut`, `FnOnce`) that the compiler selects automatically
-    - C++ capture modes (`[=]`, `[&]`, `[this]`) are manual and error-prone (dangling `[&]`!)
-    - Rust's borrow checker prevents dangling captures at compile time
-- Closures can be identified by the `||` symbol. The parameters for the types are enclosed within the `||` and can use type inference
-- Closures are frequently used in conjunction with iterators (next topic)
+- 闭包是可以捕获其环境的匿名函数
+    - C++ 等价物：lambda（`[&](int x) { return x + 1; }`）
+    - 关键差异：Rust 闭包有**三种**捕获 traits（`Fn`、`FnMut`、`FnOnce`），编译器自动选择
+    - C++ 捕获模式（`[=]`、`[&]`、`[this]`）是手动的，容易出错（悬空的 `[&]`！）
+    - Rust 的借用检查器在编译时阻止悬空捕获
+- 闭包可以用 `||` 符号标识。类型的参数 enclosed in `||` 中，可以使用类型推断
+- 闭包经常与迭代器一起使用（下一个主题）
 ```rust
 fn add_one(x: u32) -> u32 {
     x + 1
@@ -22,12 +22,12 @@ fn main() {
 ```
 
 
-# Exercise: Closures and capturing
+# 练习：闭包和捕获
 
-🟡 **Intermediate**
+🟡 **中级**
 
-- Create a closure that captures a `String` from the enclosing scope and appends to it (hint: use `move`)
-- Create a vector of closures: `Vec<Box<dyn Fn(i32) -> i32>>` containing closures that add 1, multiply by 2, and square the input. Iterate over the vector and apply each closure to the number 5
+- 创建一个闭包，从封闭作用域捕获 `String` 并附加到它（提示：使用 `move`）
+- 创建一个闭包向量：`Vec<Box<dyn Fn(i32) -> i32>>`，包含加 1、乘以 2 和平方输入的闭包。迭代向量并将每个闭包应用于数字 5
 
 <details><summary>Solution (click to expand)</summary>
 

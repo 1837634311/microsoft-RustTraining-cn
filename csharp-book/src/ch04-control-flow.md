@@ -1,12 +1,11 @@
-## Functions vs Methods
+## 函数 vs 方法
 
-> **What you'll learn:** Functions and methods in Rust vs C#, the critical distinction between
-> expressions and statements, `if`/`match`/`loop`/`while`/`for` syntax, and how Rust's
-> expression-oriented design eliminates the need for ternary operators.
+> **学习内容：** Rust的函数和方法 vs C#，表达式和语句的关键区别，
+> `if`/`match`/`loop`/`while`/`for`语法，以及Rust如何通过面向表达式的设计消除对三元运算符的需求。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-### C# Function Declaration
+### C# 函数声明
 ```csharp
 // C# - Methods in classes
 public class Calculator
@@ -31,7 +30,7 @@ public class Calculator
 }
 ```
 
-### Rust Function Declaration
+### Rust 函数声明
 ```rust
 // Rust - Standalone functions
 fn add(a: i32, b: i32) -> i32 {
@@ -57,7 +56,7 @@ fn main() {
 }
 ```
 
-### Expression vs Statement (Important!)
+### 表达式 vs 语句（重要！）
 
 ```mermaid
 graph LR
@@ -107,7 +106,7 @@ fn get_value_ternary(condition: bool) -> i32 {
 }
 ```
 
-### Function Parameters and Return Types
+### 函数参数和返回类型
 ```rust
 // No parameters, no return value (returns unit type ())
 fn say_hello() {
@@ -132,9 +131,9 @@ fn main() {
 
 ***
 
-## Control Flow Basics
+## 控制流基础
 
-### Conditional Statements
+### 条件语句
 ```csharp
 // C# if statements
 int x = 5;
@@ -179,7 +178,7 @@ let message = if x > 10 {
 };
 ```
 
-### Loops
+### 循环
 ```csharp
 // C# loops
 // For loop
@@ -241,7 +240,7 @@ loop {
 }
 ```
 
-### Loop Control
+### 循环控制
 ```csharp
 // C# loop control
 for (int i = 0; i < 10; i++)
@@ -275,9 +274,9 @@ for i in 0..10 {
 
 
 <details>
-<summary><strong>🏋️ Exercise: Temperature Converter</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：温度转换器</strong>（点击展开）</summary>
 
-**Challenge**: Convert this C# program to idiomatic Rust. Use expressions, pattern matching, and proper error handling.
+**挑战**：将这个C#程序转换为符合Rust惯用法的版本。使用表达式、模式匹配和适当的错误处理。
 
 ```csharp
 // C# — convert this to Rust
@@ -337,10 +336,10 @@ fn main() -> Result<(), String> {
 }
 ```
 
-**Key takeaways**:
-- Enums replace magic strings — exhaustive matching catches missing units at compile time
-- `Result<T, E>` replaces exceptions — the caller sees possible failures in the signature
-- `match` is an expression that returns a value — no `return` statements needed
+**关键要点**：
+- 枚举替代了魔术字符串——穷举匹配在编译时捕获缺失的单位
+- `Result<T, E>`替代了异常——调用者可以在签名中看到可能的失败
+- `match`是返回值的表达式——不需要`return`语句
 
 </details>
 </details>

@@ -1,11 +1,11 @@
-## Constructor Patterns
+## 构造函数模式
 
-> **What you'll learn:** How to create Rust structs without traditional constructors — `new()` conventions,
-> the `Default` trait, factory methods, and the builder pattern for complex initialization.
+> **学习内容：** 如何在没有传统构造函数的情况下创建Rust结构体——`new()`约定、
+> `Default` trait、工厂方法，以及用于复杂初始化的构建器模式。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-### C# Constructor Patterns
+### C# 构造函数模式
 ```csharp
 public class Configuration
 {
@@ -40,7 +40,7 @@ public class Configuration
 }
 ```
 
-### Rust Constructor Patterns
+### Rust 构造函数模式
 ```rust
 #[derive(Debug)]
 pub struct Configuration {
@@ -114,7 +114,7 @@ fn main() {
 }
 ```
 
-### Builder Pattern Implementation
+### 构建器模式实现
 ```rust
 // More complex builder pattern
 #[derive(Debug)]
@@ -211,16 +211,16 @@ fn main() {
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Builder with Validation</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：带验证的构建器</strong>（点击展开）</summary>
 
-Create an `EmailBuilder` that:
-1. Requires `to` and `subject` (builder won't compile without them — use a typestate or validate in `build()`)
-2. Has optional `body` and `cc` (Vec of addresses)
-3. `build()` returns `Result<Email, String>` — rejects empty `to` or `subject`
-4. Write tests proving invalid inputs are rejected
+创建一个`EmailBuilder`，满足以下条件：
+1. 要求`to`和`subject`（构建器没有它们无法编译——使用类型状态或在`build()`中验证）
+2. 可选的`body`和`cc`（地址Vec）
+3. `build()`返回`Result<Email, String>`——拒绝空的`to`或`subject`
+4. 编写测试证明无效输入被拒绝
 
 <details>
 <summary>🔑 Solution</summary>

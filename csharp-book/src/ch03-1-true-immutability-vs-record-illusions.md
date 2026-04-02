@@ -1,11 +1,11 @@
-## True Immutability vs Record Illusions
+## 真正的不可变性 vs 虚假的Record
 
-> **What you'll learn:** Why C# `record` types aren't truly immutable (mutable fields, reflection bypass),
-> how Rust enforces real immutability at compile time, and when to use interior mutability patterns.
+> **学习内容：** 为什么C#的`record`类型并非真正不可变（可变字段、反射绕过），
+> Rust如何在编译时强制实现真正的不可变性，以及何时使用内部可变性模式。
 >
-> **Difficulty:** 🟡 Intermediate
+> **难度：** 🟡 中级
 
-### C# Records - Immutability Theater
+### C# Records - 不可变性表演
 ```csharp
 // C# records look immutable but have escape hatches
 public record Person(string Name, int Age, List<string> Hobbies);
@@ -37,7 +37,7 @@ public record SafePerson(string Name, int Age, ImmutableList<string> Hobbies);
 // This is better, but requires discipline and has performance overhead
 ```
 
-### Rust - True Immutability by Default
+### Rust - 默认的真正不可变性
 ```rust
 #[derive(Debug, Clone)]
 struct Person {
@@ -139,12 +139,12 @@ graph TD
 
 ---
 
-## Exercises
+## 练习
 
 <details>
-<summary><strong>🏋️ Exercise: Prove the Immutability</strong> (click to expand)</summary>
+<summary><strong>🏋️ 练习：证明不可变性</strong>（点击展开）</summary>
 
-A C# colleague claims their `record` is immutable. Translate this C# code to Rust and explain why Rust's version is truly immutable:
+一位C#同事声称他们的`record`是不可变的。将这段C#代码翻译成Rust并解释为什么Rust版本是真正不可变的：
 
 ```csharp
 public record Config(string Host, int Port, List<string> AllowedOrigins);
@@ -154,9 +154,9 @@ var config = new Config("localhost", 8080, new List<string> { "example.com" });
 config.AllowedOrigins.Add("evil.com"); // Compiles! List is mutable.
 ```
 
-1. Create an equivalent Rust struct that is **truly** immutable
-2. Show that attempting to mutate `allowed_origins` is a **compile error**
-3. Write a function that creates a modified copy (new host) without mutation
+1. 创建一个等价的、**真正不可变**的Rust结构体
+2. 证明尝试修改`allowed_origins`会导致**编译错误**
+3. 编写一个函数，在不修改原值的情况下创建修改后的副本（新host）
 
 <details>
 <summary>🔑 Solution</summary>
@@ -194,7 +194,7 @@ fn main() {
 }
 ```
 
-**Key insight**: In Rust, `let config = ...` (no `mut`) makes the *entire value tree* immutable — including nested `Vec`. C# records only make the *reference* immutable, not the contents.
+**关键洞察**：在Rust中，`let config = ...`（没有`mut`）使*整个值树*不可变——包括嵌套的`Vec`。C# records只让*引用*不可变，而不是内容。
 
 </details>
 </details>

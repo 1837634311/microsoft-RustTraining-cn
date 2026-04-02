@@ -1,13 +1,13 @@
-## Package Management: Cargo vs NuGet
+## 包管理：Cargo vs NuGet
 
-> **What you'll learn:** `Cargo.toml` vs `.csproj`, version specifiers, `Cargo.lock`,
-> feature flags for conditional compilation, and common Cargo commands mapped to their NuGet/dotnet equivalents.
+> **学习内容：** `Cargo.toml` vs `.csproj`、版本说明符、`Cargo.lock`、
+> 用于条件编译的特性标志，以及常见Cargo命令及其NuGet/dotnet等价的映射。
 >
-> **Difficulty:** 🟢 Beginner
+> **难度：** 🟢 初级
 
-### Dependency Declaration
+### 依赖声明
 
-#### C# NuGet Dependencies
+#### C# NuGet依赖
 ```xml
 <!-- MyApp.csproj -->
 <Project Sdk="Microsoft.NET.Sdk">
@@ -23,7 +23,7 @@
 </Project>
 ```
 
-#### Rust Cargo Dependencies
+#### Rust Cargo依赖
 ```toml
 # Cargo.toml
 [package]
@@ -49,9 +49,9 @@ criterion = "0.5"               # Benchmarking
 proptest = "1.0"               # Property testing
 ```
 
-### Version Management
+### 版本管理
 
-#### C# Package Versioning
+#### C# 包版本控制
 ```xml
 <!-- Centralized package management (Directory.Packages.props) -->
 <Project>
@@ -66,7 +66,7 @@ proptest = "1.0"               # Property testing
 <!-- packages.lock.json for reproducible builds -->
 ```
 
-#### Rust Version Management
+#### Rust 版本管理
 ```toml
 # Cargo.toml - Semantic versioning
 [dependencies]
@@ -83,9 +83,9 @@ version = "1.0.163"
 # ... exact dependency tree
 ```
 
-### Package Sources
+### 包源
 
-#### C# Package Sources
+#### C# 包源
 ```xml
 <!-- nuget.config -->
 <configuration>
@@ -96,7 +96,7 @@ version = "1.0.163"
 </configuration>
 ```
 
-#### Rust Package Sources
+#### Rust 包源
 ```toml
 # .cargo/config.toml
 [source.crates-io]
@@ -114,7 +114,7 @@ my-registry = { index = "https://my-intranet:8080/index" }
 my_crate = { version = "1.0", registry = "my-registry" }
 ```
 
-### Common Commands Comparison
+### 常见命令对比
 
 | Task | C# Command | Rust Command |
 |------|------------|-------------|
@@ -126,9 +126,9 @@ my_crate = { version = "1.0", registry = "my-registry" }
 | Audit security | `dotnet list package --vulnerable` | `cargo audit` |
 | Clean build | `dotnet clean` | `cargo clean` |
 
-### Features: Conditional Compilation
+### 特性：条件编译
 
-#### C# Conditional Compilation
+#### C# 条件编译
 ```csharp
 #if DEBUG
     Console.WriteLine("Debug mode");
@@ -142,7 +142,7 @@ my_crate = { version = "1.0", registry = "my-registry" }
 </PropertyGroup>
 ```
 
-#### Rust Feature Gates
+#### Rust 特性门控
 ```toml
 # Cargo.toml
 [features]
@@ -176,9 +176,9 @@ pub fn serialize_data(data: &MyStruct) -> String {
 }
 ```
 
-### Using External Crates
+### 使用外部Crate
 
-#### Popular Crates for C# Developers
+#### C#开发者的流行Crate
 
 | C# Library | Rust Crate | Purpose |
 |------------|------------|---------|
@@ -191,7 +191,7 @@ pub fn serialize_data(data: &MyStruct) -> String {
 | Flurl | `url` | URL manipulation |
 | Polly | `tower` | Resilience patterns |
 
-#### Example: HTTP Client Migration
+#### 示例：HTTP客户端迁移
 ```csharp
 // C# HttpClient usage
 public class ApiClient
